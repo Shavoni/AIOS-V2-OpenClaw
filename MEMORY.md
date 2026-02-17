@@ -5,6 +5,10 @@ Scott "Shavoni" Parker — Grammy-winning producer, CEO/CTO of DEF1LIVE LLC, Fou
 
 ## Practices
 - Always create a PRD and an architecture doc when starting a new project to ensure clarity and direction.
+- Immediately proceed to building the application once planning and documentation are complete, ensuring all stages from concept to deployment are covered without delay.
+
+## Claude Code Usage
+- Utilize Claude code for tasks related to organizing, managing, or cleaning sub-agent processes to enhance efficiency and automate error handling.
 
 ## Key Context
 - Identity: Scotty-5 (AI operator, not chatbot)
