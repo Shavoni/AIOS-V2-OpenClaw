@@ -1,27 +1,36 @@
 {
-  "name": "workspace",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "aios-v2",
+  "version": "0.2.0",
+  "description": "AIOS V2 — Autonomous Intelligent Operating System for AI agent orchestration",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "jest --verbose",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Shavoni/AIOS-V2-OpenClaw.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["aios", "ai-agents", "openclaw", "orchestration"],
+  "author": "Scott 'Shavoni' Parker <shavonidef1live@gmail.com>",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Shavoni/AIOS-V2-OpenClaw/issues"
   },
   "homepage": "https://github.com/Shavoni/AIOS-V2-OpenClaw#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mongoose": "^9.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   }
 }
