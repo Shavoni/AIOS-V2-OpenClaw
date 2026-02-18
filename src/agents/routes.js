@@ -132,7 +132,14 @@ function createAgentRoutes(agentManager, classifier) {
       if (req.body.file_size && req.body.file_size > 10 * 1024 * 1024) {
         return res.status(400).json({ error: "File size exceeds 10MB limit" });
       }
-      const doc = agentManager.addKnowledgeDocument(req.params.id, req.body);
+      // Persist content in metadata so it survives server restarts for re-indexing
+      const docData = { ...req.body };
+      if (docData.content) {
+        const existingMeta = docData.metadata || {};
+        docData.metadata = { ...existingMeta, content: docData.content };
+        delete docData.content;
+      }
+      const doc = agentManager.addKnowledgeDocument(req.params.id, docData);
       res.status(201).json(doc);
     } catch (err) {
       res.status(500).json({ error: err.message });

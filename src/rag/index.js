@@ -203,6 +203,57 @@ class RAGPipeline {
   }
 
   /**
+   * Re-index all agent KB documents from the database into the in-memory keyword index.
+   * Called on server startup to restore search capability after restart.
+   * Only indexes active (non-deleted) documents that have content stored in metadata.
+   * @returns {{ agentsIndexed: number, documentsIndexed: number, chunksCreated: number }}
+   */
+  reindexAgentDocuments() {
+    if (!this.agents || !this.agents.db) return { agentsIndexed: 0, documentsIndexed: 0, chunksCreated: 0 };
+
+    const agentSet = new Set();
+    let documentsIndexed = 0;
+    let chunksCreated = 0;
+
+    // Query all active (non-deleted) knowledge documents with their content
+    const results = this.agents.db.exec(
+      "SELECT id, agent_id, filename, file_type, metadata FROM knowledge_documents WHERE is_deleted = 0"
+    );
+
+    if (!results.length) return { agentsIndexed: 0, documentsIndexed: 0, chunksCreated: 0 };
+
+    const { columns, values } = results[0];
+    for (const row of values) {
+      const doc = {};
+      columns.forEach((col, i) => { doc[col] = row[i]; });
+
+      // Extract content from metadata
+      let metadata;
+      try { metadata = JSON.parse(doc.metadata || "{}"); } catch { metadata = {}; }
+      const content = metadata.content || "";
+      if (!content) continue;
+
+      agentSet.add(doc.agent_id);
+
+      const chunkCount = this.indexDocument(doc.agent_id, doc.id, content, {
+        filename: doc.filename,
+        file_type: doc.file_type,
+      });
+
+      if (typeof chunkCount === "number") {
+        chunksCreated += chunkCount;
+      }
+      documentsIndexed++;
+    }
+
+    return {
+      agentsIndexed: agentSet.size,
+      documentsIndexed,
+      chunksCreated,
+    };
+  }
+
+  /**
    * Get index stats.
    */
   getStats() {
