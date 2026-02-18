@@ -88,6 +88,9 @@ const schemas = {
   executeSkill: {
     command: { required: true, type: "string", minLength: 1 },
   },
+  researchJob: {
+    query: { required: true, type: "string", minLength: 1, maxLength: 10000 },
+  },
 };
 
 module.exports = { validate, schemas };

@@ -305,6 +305,58 @@ const SCHEMA = [
   FOREIGN KEY (connector_id) REFERENCES connectors(id) ON DELETE CASCADE
 )`,
   `CREATE INDEX IF NOT EXISTS idx_connector_events_connector ON connector_events(connector_id)`,
+
+  // ─── Deep Research Pipeline ─────────────────────────────
+  `CREATE TABLE IF NOT EXISTS research_jobs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  query TEXT NOT NULL,
+  query_decomposition TEXT DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'QUEUED',
+  current_stage TEXT DEFAULT NULL,
+  stage_progress REAL DEFAULT 0,
+  result_id TEXT,
+  confidence_score REAL DEFAULT 0,
+  source_count INTEGER DEFAULT 0,
+  has_contradictions INTEGER DEFAULT 0,
+  ttl INTEGER DEFAULT 86400,
+  error_message TEXT,
+  retry_count INTEGER DEFAULT 0,
+  metadata TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  completed_at TEXT,
+  expires_at TEXT
+)`,
+  `CREATE INDEX IF NOT EXISTS idx_research_jobs_status ON research_jobs(status, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_research_jobs_user ON research_jobs(user_id)`,
+  `CREATE TABLE IF NOT EXISTS research_results (
+  id TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL,
+  synthesis TEXT DEFAULT '',
+  sources TEXT DEFAULT '[]',
+  claims TEXT DEFAULT '[]',
+  evidence_set TEXT DEFAULT '[]',
+  token_usage TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (job_id) REFERENCES research_jobs(id) ON DELETE CASCADE
+)`,
+  `CREATE TABLE IF NOT EXISTS research_sources (
+  id TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL,
+  url TEXT,
+  title TEXT DEFAULT '',
+  content_preview TEXT DEFAULT '',
+  domain_authority REAL DEFAULT 50,
+  recency_score REAL DEFAULT 0,
+  relevance_score REAL DEFAULT 0,
+  credibility_tier TEXT DEFAULT 'UNVERIFIED',
+  composite_score REAL DEFAULT 0,
+  retrieval_method TEXT DEFAULT 'rag',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (job_id) REFERENCES research_jobs(id) ON DELETE CASCADE
+)`,
+  `CREATE INDEX IF NOT EXISTS idx_research_sources_job ON research_sources(job_id)`,
 ];
 
 function initSchema(db) {

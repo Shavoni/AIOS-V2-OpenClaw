@@ -132,6 +132,26 @@ function setupSocket(httpServer, handler, memory, authService) {
     "audit:event": (event) => {
       io.to("audit").emit("audit:event", event);
     },
+    // Research pipeline events
+    "research:progress": (event) => {
+      io.to(`research:${event.jobId}`).emit("research:progress", event);
+      io.to("dashboard").emit("research:progress", event);
+    },
+    "research:completed": (event) => {
+      io.to(`research:${event.jobId}`).emit("research:completed", event);
+      io.to("dashboard").emit("research:completed", event);
+    },
+    "research:failed": (event) => {
+      io.to(`research:${event.jobId}`).emit("research:failed", event);
+      io.to("dashboard").emit("research:failed", event);
+    },
+    "research:queued": (event) => {
+      io.to("dashboard").emit("research:queued", event);
+    },
+    "research:cancelled": (event) => {
+      io.to(`research:${event.jobId}`).emit("research:cancelled", event);
+      io.to("dashboard").emit("research:cancelled", event);
+    },
   };
 
   for (const [event, handler] of Object.entries(handlers)) {

@@ -49,6 +49,16 @@ const { createIntegrationRoutes } = require('./integration/routes');
 // Database services
 const { RetentionService } = require('./db/retention-service');
 
+// Deep Research Pipeline
+const { SourceScorer, ClaimScorer, JobConfidenceCalculator } = require('./research/scoring-engine');
+const { ResearchJobManager } = require('./research/manager');
+const { DecompositionWorker } = require('./research/workers/decomposition');
+const { RetrievalWorker } = require('./research/workers/retrieval');
+const { ScoringWorker } = require('./research/workers/scoring');
+const { SynthesisWorker } = require('./research/workers/synthesis');
+const { ResearchQueueService } = require('./research/queue-service');
+const { createResearchRoutes } = require('./research/routes');
+
 // Embeddings
 const { createEmbeddingProvider } = require('./rag/embedding-provider');
 const { VectorStore } = require('./rag/vector-store');
@@ -216,7 +226,27 @@ async function createApp() {
     res.json(rag.getStats());
   });
 
-  console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations`);
+  // Deep Research Pipeline — operator access required
+  const researchManager = new ResearchJobManager(db, markDirty);
+  const sourceScorer = new SourceScorer();
+  const claimScorer = new ClaimScorer();
+  const jobConfidenceCalc = new JobConfidenceCalculator();
+  const decompositionWorker = new DecompositionWorker(router);
+  const retrievalWorker = new RetrievalWorker(rag, { tavilyApiKey: process.env.TAVILY_API_KEY });
+  const scoringWorker = new ScoringWorker(sourceScorer, claimScorer, jobConfidenceCalc, router);
+  const synthesisWorker = new SynthesisWorker(router);
+  const researchQueueService = new ResearchQueueService({
+    manager: researchManager,
+    decompositionWorker,
+    retrievalWorker,
+    scoringWorker,
+    synthesisWorker,
+    eventBus,
+    maxConcurrency: parseInt(process.env.RESEARCH_MAX_CONCURRENCY, 10) || 3,
+  });
+  apiRoutes.use('/research', createResearchRoutes(researchQueueService, researchManager));
+
+  console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research`);
 
   // Cleanup hook
   const shutdown = () => {
@@ -234,7 +264,7 @@ async function createApp() {
     config, router, agent, skills, memory, governance, handler,
     authService, authMiddleware,
     agentManagerService, hitlManager, analyticsManager, auditManager,
-    rag, reports, eventBus,
+    rag, reports, eventBus, researchManager, researchQueueService,
     apiRoutes,
     setupSocket: (httpServer) => setupSocket(httpServer, handler, memory, authService),
     shutdown,

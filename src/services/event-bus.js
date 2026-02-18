@@ -29,6 +29,17 @@ class EventBus extends EventEmitter {
     this.emit("chat:routed", routeInfo);
   }
 
+  // Research events
+  emitResearchProgress(event) {
+    this.emit("research:progress", event);
+  }
+  emitResearchCompleted(event) {
+    this.emit("research:completed", event);
+  }
+  emitResearchFailed(event) {
+    this.emit("research:failed", event);
+  }
+
   // System events
   emitMetricsUpdate(metrics) {
     this.emit("dashboard:metrics", metrics);
