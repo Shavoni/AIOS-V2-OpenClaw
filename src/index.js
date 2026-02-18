@@ -64,9 +64,10 @@ const { createEmbeddingProvider } = require('./rag/embedding-provider');
 const { VectorStore } = require('./rag/vector-store');
 const { EmbeddingClassifier } = require('./governance/embedding-classifier');
 
-// Document parsing + web crawling
+// Document parsing + web crawling + MANUS ingest
 const { DocumentParser } = require('./rag/document-parser');
 const { WebCrawler } = require('./agents/web-crawler');
+const { ManusIngestService } = require('./agents/manus-ingest');
 
 async function createApp() {
   // 1. Load config
@@ -170,8 +171,11 @@ async function createApp() {
   const documentParser = new DocumentParser();
   const webCrawler = new WebCrawler();
 
+  // MANUS ingest service
+  const manusIngest = new ManusIngestService({ agentManager: agentManagerService, rag, documentParser });
+
   // Agent management — operator access required
-  apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler }));
+  apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler, manusIngest }));
 
   // HITL approvals — operator access required
   apiRoutes.use('/hitl', authRequired('operator'), createHITLRoutes(hitlManager));

@@ -2,8 +2,20 @@ const express = require("express");
 const { validate, schemas } = require("../middleware/validation");
 
 function createAgentRoutes(agentManager, classifier, deps = {}) {
-  const { rag, documentParser, webCrawler } = deps;
+  const { rag, documentParser, webCrawler, manusIngest } = deps;
   const router = express.Router();
+
+  // MANUS auto-route ingest (must be before :id routes)
+  router.post("/ingest-manus/route", async (req, res) => {
+    try {
+      if (!manusIngest) return res.status(501).json({ error: "MANUS ingest not configured" });
+      const result = await manusIngest.routeAndIngest(req.body);
+      if (!result.ok) return res.status(result.error?.includes("No matching") ? 404 : 400).json(result);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // GET /api/agents — List all agents
   router.get("/", (_req, res) => {
@@ -266,6 +278,33 @@ function createAgentRoutes(agentManager, classifier, deps = {}) {
       const { jobId, sources, threshold } = req.body;
       if (!sources) return res.status(400).json({ error: "sources array required" });
       const result = agentManager.populateKBFromResearch(req.params.id, { jobId, sources, threshold });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // MANUS ingest — single file
+  router.post("/:id/ingest-manus", async (req, res) => {
+    try {
+      if (!manusIngest) return res.status(501).json({ error: "MANUS ingest not configured" });
+      if (!req.body.content) return res.status(400).json({ ok: false, error: "content is required" });
+      const result = await manusIngest.ingestFile(req.params.id, req.body);
+      if (!result.ok) return res.status(400).json(result);
+      res.status(201).json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // MANUS ingest — batch
+  router.post("/:id/ingest-manus/batch", async (req, res) => {
+    try {
+      if (!manusIngest) return res.status(501).json({ error: "MANUS ingest not configured" });
+      if (!req.body.files || !Array.isArray(req.body.files)) {
+        return res.status(400).json({ error: "files array required" });
+      }
+      const result = await manusIngest.ingestBatch(req.params.id, req.body);
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
