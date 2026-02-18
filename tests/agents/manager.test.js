@@ -22,7 +22,7 @@ describe("AgentManagerService", () => {
   describe("CRUD operations", () => {
     let agentId;
 
-    test("creates an agent", () => {
+    test("creates an agent with pending status by default", () => {
       const agent = manager.createAgent({
         name: "Legal Advisor",
         title: "Contract Specialist",
@@ -36,8 +36,10 @@ describe("AgentManagerService", () => {
       expect(agent.id).toBeTruthy();
       expect(agent.name).toBe("Legal Advisor");
       expect(agent.domain).toBe("Legal");
-      expect(agent.status).toBe("active");
+      expect(agent.status).toBe("pending");
       agentId = agent.id;
+      // Approve so downstream tests can use it
+      manager.approveAgent(agentId, "test-admin");
     });
 
     test("lists all agents", () => {
@@ -160,6 +162,71 @@ describe("AgentManagerService", () => {
       manager.deleteWebSource(src.id);
       const sources = manager.listWebSources(agentId);
       expect(sources.find((s) => s.id === src.id)).toBeUndefined();
+    });
+  });
+
+  describe("HITL approval workflow", () => {
+    test("creates an agent with pending status", () => {
+      const agent = manager.createAgent({ name: "Pending Agent", domain: "HR", status: "pending" });
+      expect(agent.status).toBe("pending");
+      expect(agent.approved_by).toBeFalsy();
+      expect(agent.approved_at).toBeFalsy();
+    });
+
+    test("getPendingAgents returns only pending agents", () => {
+      const pending = manager.getPendingAgents();
+      expect(pending.length).toBeGreaterThanOrEqual(1);
+      expect(pending.every((a) => a.status === "pending")).toBe(true);
+    });
+
+    test("approveAgent transitions pending to active with audit trail", () => {
+      const agent = manager.createAgent({ name: "To Approve", domain: "Legal", status: "pending" });
+      const approved = manager.approveAgent(agent.id, "reviewer-1");
+      expect(approved).toBeTruthy();
+      expect(approved.status).toBe("active");
+      expect(approved.approved_by).toBe("reviewer-1");
+      expect(approved.approved_at).toBeTruthy();
+    });
+
+    test("approveAgent returns null for nonexistent agent", () => {
+      expect(manager.approveAgent("nonexistent", "admin")).toBeNull();
+    });
+
+    test("approveAgent returns null for non-pending agent", () => {
+      const agent = manager.createAgent({ name: "Already Active", status: "active" });
+      expect(manager.approveAgent(agent.id, "admin")).toBeNull();
+    });
+
+    test("rejectAgent transitions pending to rejected with reason", () => {
+      const agent = manager.createAgent({ name: "To Reject", domain: "Finance", status: "pending" });
+      const rejected = manager.rejectAgent(agent.id, "reviewer-2", "Insufficient documentation");
+      expect(rejected).toBeTruthy();
+      expect(rejected.status).toBe("rejected");
+      expect(rejected.approved_by).toBe("reviewer-2");
+      expect(rejected.rejection_reason).toBe("Insufficient documentation");
+    });
+
+    test("rejectAgent returns null for non-pending agent", () => {
+      const agent = manager.createAgent({ name: "Already Active 2", status: "active" });
+      expect(manager.rejectAgent(agent.id, "admin", "reason")).toBeNull();
+    });
+
+    test("rejected agents do not appear in active agents", () => {
+      const active = manager.getActiveAgents();
+      expect(active.every((a) => a.status === "active")).toBe(true);
+    });
+
+    test("pending agents do not appear in active agents", () => {
+      const active = manager.getActiveAgents();
+      expect(active.every((a) => a.status !== "pending")).toBe(true);
+    });
+
+    test("approved agent disappears from pending list", () => {
+      const before = manager.getPendingAgents();
+      const agent = manager.createAgent({ name: "Approve Then Check", status: "pending" });
+      manager.approveAgent(agent.id, "admin");
+      const after = manager.getPendingAgents();
+      expect(after.find((a) => a.id === agent.id)).toBeUndefined();
     });
   });
 

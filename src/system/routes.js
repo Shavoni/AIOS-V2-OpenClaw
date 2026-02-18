@@ -142,14 +142,8 @@ function createSystemRoutes(llmConfig, branding, canon, agentManager, db, markDi
   // GET /api/system/pending-agents — List agents awaiting approval
   router.get("/pending-agents", (_req, res) => {
     try {
-      if (!agentManager) {
-        return res.json([]);
-      }
-      const allAgents = agentManager.listAgents ? agentManager.listAgents() : [];
-      const pending = allAgents.filter(a =>
-        a.status === 'pending' || a.status === 'pending_approval' || a.approval_status === 'pending'
-      );
-      res.json(pending);
+      if (!agentManager) return res.json([]);
+      res.json(agentManager.getPendingAgents());
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -158,15 +152,10 @@ function createSystemRoutes(llmConfig, branding, canon, agentManager, db, markDi
   // POST /api/system/pending-agents/:id/approve — Approve a pending agent
   router.post("/pending-agents/:id/approve", (req, res) => {
     try {
-      if (!agentManager) {
-        return res.status(501).json({ error: "Agent manager not initialized" });
-      }
-      const agent = agentManager.getAgent ? agentManager.getAgent(req.params.id) : null;
-      if (!agent) return res.status(404).json({ error: "Agent not found" });
-
-      const updated = agentManager.updateAgent
-        ? agentManager.updateAgent(req.params.id, { status: 'active', approval_status: 'approved' })
-        : { ...agent, status: 'active' };
+      if (!agentManager) return res.status(501).json({ error: "Agent manager not initialized" });
+      const approvedBy = req.body.reviewer_id || req.body.approved_by || "admin";
+      const updated = agentManager.approveAgent(req.params.id, approvedBy);
+      if (!updated) return res.status(404).json({ error: "Agent not found or not pending" });
       res.json(updated);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -176,15 +165,11 @@ function createSystemRoutes(llmConfig, branding, canon, agentManager, db, markDi
   // POST /api/system/pending-agents/:id/reject — Reject a pending agent
   router.post("/pending-agents/:id/reject", (req, res) => {
     try {
-      if (!agentManager) {
-        return res.status(501).json({ error: "Agent manager not initialized" });
-      }
-      const agent = agentManager.getAgent ? agentManager.getAgent(req.params.id) : null;
-      if (!agent) return res.status(404).json({ error: "Agent not found" });
-
-      const updated = agentManager.updateAgent
-        ? agentManager.updateAgent(req.params.id, { status: 'rejected', approval_status: 'rejected', rejection_reason: req.body.reason })
-        : { ...agent, status: 'rejected' };
+      if (!agentManager) return res.status(501).json({ error: "Agent manager not initialized" });
+      const rejectedBy = req.body.reviewer_id || req.body.rejected_by || "admin";
+      const reason = req.body.reason || "";
+      const updated = agentManager.rejectAgent(req.params.id, rejectedBy, reason);
+      if (!updated) return res.status(404).json({ error: "Agent not found or not pending" });
       res.json(updated);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -192,24 +177,14 @@ function createSystemRoutes(llmConfig, branding, canon, agentManager, db, markDi
   });
 
   // POST /api/system/pending-agents/approve-all — Bulk approve all pending agents
-  router.post("/pending-agents/approve-all", (_req, res) => {
+  router.post("/pending-agents/approve-all", (req, res) => {
     try {
-      if (!agentManager) {
-        return res.json({ approved: 0 });
-      }
-      const allAgents = agentManager.listAgents ? agentManager.listAgents() : [];
-      const pending = allAgents.filter(a =>
-        a.status === 'pending' || a.status === 'pending_approval' || a.approval_status === 'pending'
-      );
-
+      if (!agentManager) return res.json({ approved: 0 });
+      const approvedBy = req.body.reviewer_id || "admin";
+      const pending = agentManager.getPendingAgents();
       let approved = 0;
       for (const agent of pending) {
-        try {
-          if (agentManager.updateAgent) {
-            agentManager.updateAgent(agent.id, { status: 'active', approval_status: 'approved' });
-          }
-          approved++;
-        } catch { /* skip failed */ }
+        if (agentManager.approveAgent(agent.id, approvedBy)) approved++;
       }
       res.json({ approved, total: pending.length });
     } catch (err) {

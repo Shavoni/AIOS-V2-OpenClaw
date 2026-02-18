@@ -24,10 +24,14 @@ function createAgentRoutes(agentManager, classifier) {
     }
   });
 
-  // POST /api/agents — Create agent
+  // POST /api/agents — Create agent (always pending unless router)
   router.post("/", validate(schemas.createAgent), (req, res) => {
     try {
-      const agent = agentManager.createAgent(req.body);
+      const isRouter = req.body.is_router || false;
+      const agent = agentManager.createAgent({
+        ...req.body,
+        status: isRouter ? "active" : "pending",
+      });
       res.status(201).json(agent);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -135,10 +139,99 @@ function createAgentRoutes(agentManager, classifier) {
     }
   });
 
+  // GET single document
+  router.get("/:id/knowledge/:docId", (req, res) => {
+    try {
+      const doc = agentManager.getKnowledgeDocument(req.params.docId);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+      res.json(doc);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT — update a knowledge document
+  router.put("/:id/knowledge/:docId", (req, res) => {
+    try {
+      const updated = agentManager.updateKnowledgeDocument(req.params.docId, req.body);
+      if (!updated) return res.status(404).json({ error: "Document not found" });
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST — soft delete
+  router.post("/:id/knowledge/:docId/archive", (req, res) => {
+    try {
+      const result = agentManager.softDeleteDocument(req.params.docId);
+      if (!result) return res.status(404).json({ error: "Document not found" });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST — restore soft-deleted document
+  router.post("/:id/knowledge/:docId/restore", (req, res) => {
+    try {
+      const result = agentManager.restoreDocument(req.params.docId);
+      if (!result) return res.status(404).json({ error: "Document not found" });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE — hard delete
   router.delete("/:id/knowledge/:docId", (req, res) => {
     try {
-      agentManager.deleteKnowledgeDocument(req.params.docId);
+      agentManager.hardDeleteDocument(req.params.docId);
       res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST — batch soft-delete
+  router.post("/:id/knowledge/batch-delete", (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ error: "ids array required" });
+      const result = agentManager.batchDeleteDocuments(ids);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET — KB stats/health
+  router.get("/:id/kb/stats", (req, res) => {
+    try {
+      res.json(agentManager.getKBStats(req.params.id));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET — KB coverage analysis
+  router.get("/:id/kb/coverage", (req, res) => {
+    try {
+      const analysis = agentManager.getKBCoverageAnalysis(req.params.id);
+      if (!analysis) return res.status(404).json({ error: "Agent not found" });
+      res.json(analysis);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST — populate KB from research
+  router.post("/:id/kb/populate-from-research", (req, res) => {
+    try {
+      const { jobId, sources, threshold } = req.body;
+      if (!sources) return res.status(400).json({ error: "sources array required" });
+      const result = agentManager.populateKBFromResearch(req.params.id, { jobId, sources, threshold });
+      res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -157,6 +250,17 @@ function createAgentRoutes(agentManager, classifier) {
     try {
       const source = agentManager.addWebSource(req.params.id, req.body);
       res.status(201).json(source);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT — update web source
+  router.put("/:id/sources/:sourceId", (req, res) => {
+    try {
+      const updated = agentManager.updateWebSource(req.params.sourceId, req.body);
+      if (!updated) return res.status(404).json({ error: "Web source not found" });
+      res.json(updated);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

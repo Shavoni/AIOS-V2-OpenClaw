@@ -54,6 +54,9 @@ const SCHEMA = [
   status TEXT NOT NULL DEFAULT 'active',
   is_router INTEGER DEFAULT 0,
   escalates_to TEXT,
+  approved_by TEXT,
+  approved_at TEXT,
+  rejection_reason TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 )`,
@@ -64,10 +67,34 @@ const SCHEMA = [
   file_type TEXT DEFAULT '',
   file_size INTEGER DEFAULT 0,
   chunk_count INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'active',
+  added_by TEXT DEFAULT 'user',
+  source_type TEXT DEFAULT 'manual_entry',
+  source_url TEXT,
+  research_job_id TEXT,
+  priority INTEGER DEFAULT 50,
+  language TEXT,
+  is_deleted INTEGER DEFAULT 0,
+  deleted_at TEXT,
   uploaded_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   metadata TEXT DEFAULT '{}',
   FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 )`,
+  `CREATE INDEX IF NOT EXISTS idx_knowledge_docs_agent ON knowledge_documents(agent_id, is_deleted)`,
+  `CREATE TABLE IF NOT EXISTS kb_entry_versions (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL,
+  filename TEXT,
+  content_hash TEXT,
+  changed_by TEXT,
+  change_type TEXT DEFAULT 'updated',
+  previous_metadata TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE
+)`,
+  `CREATE INDEX IF NOT EXISTS idx_kb_versions_doc ON kb_entry_versions(document_id)`,
+
   `CREATE TABLE IF NOT EXISTS web_sources (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL,
@@ -310,6 +337,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS research_jobs (
   id TEXT PRIMARY KEY,
   user_id TEXT,
+  agent_id TEXT,
   query TEXT NOT NULL,
   query_decomposition TEXT DEFAULT '[]',
   status TEXT NOT NULL DEFAULT 'QUEUED',
