@@ -127,6 +127,12 @@ async function createApp() {
   const rag = new RAGPipeline(agentManagerService, canon, { embedder, vectorStore });
   rag.indexCanon();
 
+  // Re-index agent KB documents into in-memory keyword search (survives restarts)
+  const reindexStats = rag.reindexAgentDocuments();
+  if (reindexStats.documentsIndexed > 0) {
+    console.log(`KB re-indexed: ${reindexStats.documentsIndexed} docs, ${reindexStats.chunksCreated} chunks across ${reindexStats.agentsIndexed} agents`);
+  }
+
   // Embedding-enhanced classifier (initializes async, falls back to keyword until ready)
   const embeddingClassifier = new EmbeddingClassifier(embedder);
   if (embedder) embeddingClassifier.initialize().catch(() => {});
