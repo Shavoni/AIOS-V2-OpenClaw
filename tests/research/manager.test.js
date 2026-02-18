@@ -1,15 +1,11 @@
-const initSqlJs = require("sql.js");
-const { initSchema } = require("../../src/db/schema");
+const { createTestDb } = require("../fixtures/test-db");
 const { ResearchJobManager } = require("../../src/research/manager");
 
 describe("ResearchJobManager", () => {
   let db, manager, saveFn;
 
   beforeAll(async () => {
-    const SQL = await initSqlJs();
-    db = new SQL.Database();
-    db.run("PRAGMA foreign_keys = ON");
-    initSchema(db);
+    db = await createTestDb();
     saveFn = jest.fn();
     manager = new ResearchJobManager(db, saveFn);
   });

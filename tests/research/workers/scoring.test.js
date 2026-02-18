@@ -1,13 +1,12 @@
 const { ScoringWorker } = require("../../../src/research/workers/scoring");
 const { SourceScorer, ClaimScorer, JobConfidenceCalculator } = require("../../../src/research/scoring-engine");
+const { createMockRouter } = require("../../fixtures/research-mocks");
 
 describe("ScoringWorker", () => {
   let worker, mockRouter;
 
   beforeEach(() => {
-    mockRouter = {
-      chatCompletion: jest.fn(),
-    };
+    mockRouter = createMockRouter();
     worker = new ScoringWorker(
       new SourceScorer(),
       new ClaimScorer(),

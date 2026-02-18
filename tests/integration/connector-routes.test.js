@@ -5,32 +5,26 @@
 
 const express = require("express");
 const request = require("supertest");
-const initSqlJs = require("sql.js");
-const { initSchema } = require("../../src/db/schema");
+const { createTestDb } = require("../fixtures/test-db");
 const { ConnectorService } = require("../../src/integration/connector-service");
 const { createIntegrationRoutes } = require("../../src/integration/routes");
+const errorHandler = require("../../src/middleware/error-handler");
 
 describe("Integration Routes", () => {
   let app, db, service;
 
-  beforeAll(async () => {
-    global._SQL = await initSqlJs();
-  });
-
-  beforeEach(() => {
-    db = new global._SQL.Database();
-    db.run("PRAGMA foreign_keys = ON");
-    initSchema(db);
+  beforeEach(async () => {
+    db = await createTestDb();
     service = new ConnectorService(db, jest.fn());
 
     app = express();
     app.use(express.json());
-    // Mock user for approve
     app.use((req, _res, next) => {
       req.user = { username: "admin", role: "admin" };
       next();
     });
     app.use("/api/integrations", createIntegrationRoutes(service));
+    app.use(errorHandler);
   });
 
   afterEach(() => {

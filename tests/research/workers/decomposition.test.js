@@ -1,12 +1,11 @@
 const { DecompositionWorker } = require("../../../src/research/workers/decomposition");
+const { createMockRouter } = require("../../fixtures/research-mocks");
 
 describe("DecompositionWorker", () => {
   let worker, mockRouter;
 
   beforeEach(() => {
-    mockRouter = {
-      chatCompletion: jest.fn(),
-    };
+    mockRouter = createMockRouter();
     worker = new DecompositionWorker(mockRouter);
   });
 

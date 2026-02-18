@@ -2,17 +2,15 @@
  * Synthesis Worker — Generates structured research report from curated evidence via LLM.
  */
 
-const DEFAULT_TIMEOUT_MS = 120000;
+const { BaseWorker } = require("./base-worker");
 
-class SynthesisWorker {
-  constructor(modelRouter, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-    this.router = modelRouter;
-    this.timeoutMs = timeoutMs;
+class SynthesisWorker extends BaseWorker {
+  constructor(modelRouter, opts = {}) {
+    super(modelRouter, { timeoutMs: opts.timeoutMs || 120000 });
   }
 
   async execute({ query, scoredSources, scoredClaims, jobConfidence }) {
     try {
-      // Build source citations block
       const sourceCitations = scoredSources
         .map((s, i) => {
           const parts = [`[${i + 1}]`];
@@ -23,18 +21,14 @@ class SynthesisWorker {
         })
         .join("\n");
 
-      // Build claims block
       const claimsBlock = scoredClaims
         .map((c) => {
           let line = `- ${c.text} (confidence: ${(c.confidenceScore || 0).toFixed(2)})`;
-          if (c.contradictionFlag) {
-            line += " [CONTRADICTION DETECTED]";
-          }
+          if (c.contradictionFlag) line += " [CONTRADICTION DETECTED]";
           return line;
         })
         .join("\n");
 
-      // Build confidence context
       const confidencePercent = Math.round((jobConfidence.confidence || 0) * 100);
       const contradictionNote = jobConfidence.hasContradictions
         ? "\nIMPORTANT: Contradictions were detected among sources. Address these contradictions explicitly in the report."
@@ -58,7 +52,7 @@ Guidelines:
 - Be transparent about confidence levels and evidence gaps
 - If contradictions exist, present both sides fairly`;
 
-      const result = await Promise.race([
+      const result = await this.withTimeout(
         this.router.chatCompletion({
           messages: [
             { role: "system", content: systemPrompt },
@@ -66,21 +60,12 @@ Guidelines:
           ],
           temperature: 0.4,
         }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Synthesis timed out")), this.timeoutMs)
-        ),
-      ]);
+        "Synthesis"
+      );
 
-      return {
-        synthesis: result.content,
-        tokenUsage: result.usage || {},
-      };
+      return { synthesis: result.content, tokenUsage: result.usage || {} };
     } catch (error) {
-      return {
-        synthesis: `Synthesis failed: ${error.message}`,
-        error: error.message,
-        tokenUsage: {},
-      };
+      return { synthesis: `Synthesis failed: ${error.message}`, error: error.message, tokenUsage: {} };
     }
   }
 }

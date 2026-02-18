@@ -2,28 +2,25 @@
  * Scoring Worker — Scores sources, extracts claims via LLM, and calculates job confidence.
  */
 
-const DEFAULT_TIMEOUT_MS = 90000;
+const { BaseWorker } = require("./base-worker");
 
-class ScoringWorker {
-  constructor(sourceScorer, claimScorer, jobConfidenceCalculator, modelRouter, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+class ScoringWorker extends BaseWorker {
+  constructor(sourceScorer, claimScorer, jobConfidenceCalculator, modelRouter, opts = {}) {
+    super(modelRouter, { timeoutMs: opts.timeoutMs || 90000 });
     this.sourceScorer = sourceScorer;
     this.claimScorer = claimScorer;
     this.jobConfidenceCalculator = jobConfidenceCalculator;
-    this.router = modelRouter;
-    this.timeoutMs = timeoutMs;
   }
 
   async execute(sources, query) {
-    // Score each source
     const scoredSources = sources.map((source) => ({
       ...source,
       ...this.sourceScorer.scoreSource(source),
     }));
 
-    // Extract claims via LLM
     let rawClaims = [];
     try {
-      const result = await Promise.race([
+      const result = await this.withTimeout(
         this.router.chatCompletion({
           messages: [
             {
@@ -37,17 +34,12 @@ class ScoringWorker {
           ],
           temperature: 0.2,
         }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Claim extraction timed out")), this.timeoutMs)
-        ),
-      ]);
+        "Claim extraction"
+      );
 
-      const parsed = JSON.parse(result.content);
-      if (Array.isArray(parsed)) {
-        rawClaims = parsed;
-      }
+      const parsed = this.safeJsonParse(result.content, []);
+      if (Array.isArray(parsed)) rawClaims = parsed;
     } catch {
-      // LLM failure — return scored sources with empty claims and zero confidence
       return {
         scoredSources,
         scoredClaims: [],
@@ -55,38 +47,25 @@ class ScoringWorker {
       };
     }
 
-    // Score each claim
     const scoredClaims = rawClaims.map((claim) => {
       const supportingSources = (claim.supportingIndices || [])
         .filter((i) => i >= 0 && i < scoredSources.length)
         .map((i) => scoredSources[i]);
-
       const contradictingSources = (claim.contradictingIndices || [])
         .filter((i) => i >= 0 && i < scoredSources.length)
         .map((i) => scoredSources[i]);
 
-      const scores = this.claimScorer.scoreClaim({
-        supportingSources,
-        contradictingSources,
-      });
-
       return {
         text: claim.text,
-        ...scores,
+        ...this.claimScorer.scoreClaim({ supportingSources, contradictingSources }),
       };
     });
 
-    // Calculate job-level confidence
     const jobConfidence = this.jobConfidenceCalculator.calculateJobConfidence(
-      scoredClaims,
-      sources.length
+      scoredClaims, sources.length
     );
 
-    return {
-      scoredSources,
-      scoredClaims,
-      jobConfidence,
-    };
+    return { scoredSources, scoredClaims, jobConfidence };
   }
 }
 

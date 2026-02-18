@@ -1,12 +1,11 @@
 const { SynthesisWorker } = require("../../../src/research/workers/synthesis");
+const { createMockRouter } = require("../../fixtures/research-mocks");
 
 describe("SynthesisWorker", () => {
   let worker, mockRouter;
 
   beforeEach(() => {
-    mockRouter = {
-      chatCompletion: jest.fn(),
-    };
+    mockRouter = createMockRouter();
     worker = new SynthesisWorker(mockRouter);
   });
 

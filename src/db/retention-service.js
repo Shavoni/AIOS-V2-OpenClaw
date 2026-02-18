@@ -1,5 +1,11 @@
 const SETTINGS_KEY = 'retention_policy';
 
+const PURGE_TARGETS = [
+  { table: 'messages',     column: 'created_at', policyKey: 'messages_days',      resultKey: 'messages' },
+  { table: 'audit_events', column: 'timestamp',  policyKey: 'audit_events_days',  resultKey: 'audit_events' },
+  { table: 'query_events', column: 'timestamp',  policyKey: 'query_events_days',  resultKey: 'query_events' },
+];
+
 class RetentionService {
   constructor(db, markDirty) {
     this.db = db;
@@ -17,14 +23,13 @@ class RetentionService {
       }
       stmt.free();
     } catch {
-      // No policy stored yet — return defaults
+      // No policy stored yet
     }
     return { messages_days: null, audit_events_days: null, query_events_days: null };
   }
 
   updatePolicy(policy) {
     const value = JSON.stringify(policy);
-    // Upsert into system_settings — parameterized
     const stmt = this.db.prepare("SELECT key FROM system_settings WHERE key = ?");
     stmt.bind([SETTINGS_KEY]);
     const exists = stmt.step();
@@ -42,51 +47,22 @@ class RetentionService {
 
   purge() {
     const policy = this.getPolicy();
-    const result = { messages: 0, audit_events: 0, query_events: 0 };
-    const now = new Date();
+    const result = {};
+    const now = Date.now();
 
-    if (policy.messages_days) {
-      const cutoff = new Date(now);
-      cutoff.setDate(cutoff.getDate() - policy.messages_days);
-      const iso = cutoff.toISOString();
-      const countStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM messages WHERE created_at < ?");
-      countStmt.bind([iso]);
-      if (countStmt.step()) {
-        result.messages = countStmt.getAsObject().cnt;
-      }
-      countStmt.free();
-      if (result.messages > 0) {
-        this.db.run("DELETE FROM messages WHERE created_at < ?", [iso]);
-      }
-    }
+    for (const { table, column, policyKey, resultKey } of PURGE_TARGETS) {
+      result[resultKey] = 0;
+      const days = policy[policyKey];
+      if (!days) continue;
 
-    if (policy.audit_events_days) {
-      const cutoff = new Date(now);
-      cutoff.setDate(cutoff.getDate() - policy.audit_events_days);
-      const iso = cutoff.toISOString();
-      const countStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM audit_events WHERE timestamp < ?");
-      countStmt.bind([iso]);
-      if (countStmt.step()) {
-        result.audit_events = countStmt.getAsObject().cnt;
-      }
+      const cutoff = new Date(now - days * 86400000).toISOString();
+      const countStmt = this.db.prepare(`SELECT COUNT(*) as cnt FROM ${table} WHERE ${column} < ?`);
+      countStmt.bind([cutoff]);
+      if (countStmt.step()) result[resultKey] = countStmt.getAsObject().cnt;
       countStmt.free();
-      if (result.audit_events > 0) {
-        this.db.run("DELETE FROM audit_events WHERE timestamp < ?", [iso]);
-      }
-    }
 
-    if (policy.query_events_days) {
-      const cutoff = new Date(now);
-      cutoff.setDate(cutoff.getDate() - policy.query_events_days);
-      const iso = cutoff.toISOString();
-      const countStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM query_events WHERE timestamp < ?");
-      countStmt.bind([iso]);
-      if (countStmt.step()) {
-        result.query_events = countStmt.getAsObject().cnt;
-      }
-      countStmt.free();
-      if (result.query_events > 0) {
-        this.db.run("DELETE FROM query_events WHERE timestamp < ?", [iso]);
+      if (result[resultKey] > 0) {
+        this.db.run(`DELETE FROM ${table} WHERE ${column} < ?`, [cutoff]);
       }
     }
 

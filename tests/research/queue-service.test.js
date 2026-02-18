@@ -1,4 +1,5 @@
 const { ResearchQueueService } = require("../../src/research/queue-service");
+const { createMockManager, createMockEventBus } = require("../fixtures/research-mocks");
 
 describe("ResearchQueueService", () => {
   let service, mockManager, mockDecomposition, mockRetrieval, mockScoring, mockSynthesis, mockEventBus;
@@ -6,18 +7,7 @@ describe("ResearchQueueService", () => {
   beforeEach(() => {
     jest.useFakeTimers();
 
-    mockManager = {
-      createJob: jest.fn().mockReturnValue({ id: "job-1", status: "QUEUED", query: "test" }),
-      getJob: jest.fn().mockReturnValue({ id: "job-1", status: "QUEUED", query: "test" }),
-      updateStatus: jest.fn(),
-      updateStageProgress: jest.fn(),
-      setQueryDecomposition: jest.fn(),
-      completeJob: jest.fn(),
-      failJob: jest.fn(),
-      saveResult: jest.fn().mockReturnValue("result-1"),
-      addSource: jest.fn(),
-      getQueueSummary: jest.fn().mockReturnValue({ QUEUED: 0, PROCESSING: 0, COMPLETED: 0, FAILED: 0 }),
-    };
+    mockManager = createMockManager();
 
     mockDecomposition = { execute: jest.fn().mockResolvedValue(["q1", "q2"]) };
     mockRetrieval = { execute: jest.fn().mockResolvedValue([
@@ -33,9 +23,7 @@ describe("ResearchQueueService", () => {
       tokenUsage: { totalTokens: 1500 },
     })};
 
-    mockEventBus = {
-      emit: jest.fn(),
-    };
+    mockEventBus = createMockEventBus();
 
     service = new ResearchQueueService({
       manager: mockManager,

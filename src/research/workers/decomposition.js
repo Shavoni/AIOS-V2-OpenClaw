@@ -2,17 +2,16 @@
  * Decomposition Worker — Breaks a query into targeted sub-questions via LLM.
  */
 
-const DEFAULT_TIMEOUT_MS = 60000;
+const { BaseWorker } = require("./base-worker");
 
-class DecompositionWorker {
-  constructor(modelRouter, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-    this.router = modelRouter;
-    this.timeoutMs = timeoutMs;
+class DecompositionWorker extends BaseWorker {
+  constructor(modelRouter, opts = {}) {
+    super(modelRouter, { timeoutMs: opts.timeoutMs || 60000 });
   }
 
   async execute(query) {
     try {
-      const result = await Promise.race([
+      const result = await this.withTimeout(
         this.router.chatCompletion({
           messages: [
             {
@@ -23,23 +22,18 @@ class DecompositionWorker {
           ],
           temperature: 0.3,
         }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Decomposition timed out")), this.timeoutMs)
-        ),
-      ]);
+        "Decomposition"
+      );
 
-      const parsed = JSON.parse(result.content);
+      const parsed = this.safeJsonParse(result.content, null);
       if (!Array.isArray(parsed)) return [query];
 
-      // Clean: strip numbered prefixes, deduplicate, cap at 7
       const cleaned = parsed
         .map((q) => String(q).replace(/^\d+\.\s*/, "").trim())
         .filter((q) => q.length > 0);
 
       const unique = [...new Set(cleaned)];
       const capped = unique.slice(0, 7);
-
-      // Prepend original query, deduplicate again, cap at 8
       const withOriginal = [query, ...capped.filter((q) => q !== query)];
       return withOriginal.slice(0, 8);
     } catch {

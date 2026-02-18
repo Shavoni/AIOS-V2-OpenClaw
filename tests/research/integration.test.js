@@ -3,8 +3,8 @@
  * Uses real scoring engine, real manager with sql.js, mocked LLM and fetch.
  */
 
-const initSqlJs = require("sql.js");
-const { initSchema } = require("../../src/db/schema");
+const { createTestDb } = require("../fixtures/test-db");
+const { createMockRouter, createMockRag, createMockEventBus } = require("../fixtures/research-mocks");
 const { SourceScorer, ClaimScorer, JobConfidenceCalculator } = require("../../src/research/scoring-engine");
 const { ResearchJobManager } = require("../../src/research/manager");
 const { DecompositionWorker } = require("../../src/research/workers/decomposition");
@@ -17,27 +17,16 @@ describe("Deep Research Pipeline — Integration", () => {
   let db, manager, queueService, mockRouter, mockRag, originalFetch, eventLog;
 
   beforeEach(async () => {
-    const SQL = await initSqlJs();
-    db = new SQL.Database();
-    initSchema(db);
-
+    db = await createTestDb();
     manager = new ResearchJobManager(db, () => {});
-
-    mockRouter = {
-      chatCompletion: jest.fn(),
-    };
-
-    mockRag = {
-      search: { search: jest.fn().mockReturnValue([]) },
-    };
+    mockRouter = createMockRouter();
+    mockRag = createMockRag();
 
     originalFetch = global.fetch;
     global.fetch = jest.fn();
 
     eventLog = [];
-    const eventBus = {
-      emit: jest.fn((...args) => eventLog.push(args)),
-    };
+    const eventBus = createMockEventBus(eventLog);
 
     // Mock LLM responses for each stage
     // 1. Decomposition: returns sub-questions

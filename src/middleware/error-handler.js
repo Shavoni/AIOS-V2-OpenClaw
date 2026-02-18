@@ -1,5 +1,5 @@
 function errorHandler(err, _req, res, _next) {
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || err.status || 500;
   const message = err.message || "Internal Server Error";
 
   if (process.env.NODE_ENV !== "test") {
@@ -8,7 +8,6 @@ function errorHandler(err, _req, res, _next) {
 
   res.status(statusCode).json({
     error: message,
-    code: statusCode,
   });
 }
 

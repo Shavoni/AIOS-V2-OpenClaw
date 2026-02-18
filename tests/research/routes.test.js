@@ -1,7 +1,8 @@
 const express = require("express");
 const request = require("supertest");
+const { createMockManager } = require("../fixtures/research-mocks");
+const errorHandler = require("../../src/middleware/error-handler");
 
-// Mock express-rate-limit to pass through in tests
 jest.mock("express-rate-limit", () => () => (_req, _res, next) => next());
 
 const { createResearchRoutes } = require("../../src/research/routes");
@@ -10,12 +11,12 @@ describe("Research Routes", () => {
   let app, mockQueueService, mockManager;
 
   beforeEach(() => {
-    mockManager = {
+    mockManager = createMockManager({
       getJob: jest.fn(),
       listJobs: jest.fn().mockReturnValue([]),
       getResult: jest.fn(),
       getSourcesForJob: jest.fn().mockReturnValue([]),
-    };
+    });
 
     mockQueueService = {
       submitJob: jest.fn().mockResolvedValue({ id: "job-1", status: "QUEUED", query: "test" }),
@@ -25,9 +26,9 @@ describe("Research Routes", () => {
 
     app = express();
     app.use(express.json());
-    // Simulate auth middleware populating req.user (as index.js does at mount level)
     app.use((req, _res, next) => { req.user = { id: "user-1", role: "operator" }; next(); });
     app.use("/api/research", createResearchRoutes(mockQueueService, mockManager));
+    app.use(errorHandler);
   });
 
   // --- POST /api/research/jobs ---
