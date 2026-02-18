@@ -33,8 +33,8 @@ class ResearchQueueService {
     return this._queue.length;
   }
 
-  async submitJob({ userId, query, ttl, metadata }) {
-    const job = this.manager.createJob({ userId, query, ttl, metadata });
+  async submitJob({ userId, query, ttl, metadata, agentId }) {
+    const job = this.manager.createJob({ userId, query, ttl, metadata, agentId });
     this.eventBus.emit("research:queued", job);
 
     this._queue.push(job.id);
@@ -63,9 +63,10 @@ class ResearchQueueService {
 
       if (this._isCancelled(jobId)) return;
 
-      // Stage 2: Retrieval
+      // Stage 2: Retrieval — use job's agent_id for RAG search, fall back to jobId
       this._emitProgress(jobId, "retrieval", 0);
-      const sources = await this.retrieval.execute(subQuestions, jobId);
+      const ragAgentId = job.agent_id || jobId;
+      const sources = await this.retrieval.execute(subQuestions, ragAgentId);
       this._emitProgress(jobId, "retrieval", 100);
 
       if (this._isCancelled(jobId)) return;

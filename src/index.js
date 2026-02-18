@@ -247,6 +247,18 @@ async function createApp() {
   });
   apiRoutes.use('/research', authRequired('operator'), createResearchRoutes(researchQueueService, researchManager));
 
+  // Auto-populate agent KB from completed research jobs
+  eventBus.on('research:completed', ({ jobId }) => {
+    try {
+      const job = researchManager.getJob(jobId);
+      if (!job || !job.agent_id) return;
+      const result = researchManager.getResult(jobId);
+      if (!result || !result.sources) return;
+      const sources = typeof result.sources === 'string' ? JSON.parse(result.sources) : result.sources;
+      agentManagerService.populateKBFromResearch(job.agent_id, { jobId, sources, threshold: 0.65 });
+    } catch { /* non-critical — don't break the pipeline */ }
+  });
+
   console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research`);
 
   // Cleanup hook

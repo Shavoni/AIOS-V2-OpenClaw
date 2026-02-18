@@ -201,6 +201,9 @@ export class AgentsPage {
         <div class="agent-card-caps">
           ${(agent.capabilities || []).slice(0, 4).map(c => `<span class="tag tag--${domain === 'HR' ? 'purple' : domain === 'Finance' ? 'green' : domain === 'Legal' ? 'blue' : 'green'}">${escapeHtml(c)}</span>`).join('')}
         </div>
+        <div class="agent-card-kb" id="agent-kb-${agent.id}" style="margin-top:var(--space-2);font-size:var(--font-size-xs);color:var(--text-muted)">
+          <span class="spinner spinner--xs" style="width:10px;height:10px"></span>
+        </div>
       `;
 
       // Add kebab dropdown menu
@@ -221,7 +224,25 @@ export class AgentsPage {
       }
 
       grid.appendChild(card);
+
+      // Async load KB stats for this agent
+      this._loadAgentKBBadge(agent.id);
     });
+  }
+
+  async _loadAgentKBBadge(agentId) {
+    const el = document.getElementById(`agent-kb-${agentId}`);
+    if (!el) return;
+    try {
+      const stats = await this.api._get(`/api/agents/${agentId}/kb/stats`);
+      const docCount = stats.documentCount || 0;
+      const srcCount = stats.webSourceCount || 0;
+      const sizeKB = stats.totalSizeBytes ? (stats.totalSizeBytes / 1024).toFixed(1) : '0';
+      const color = docCount === 0 ? 'var(--accent-red)' : docCount < 3 ? 'var(--accent-yellow)' : 'var(--accent-green)';
+      el.innerHTML = `<span style="color:${color}">&#9679;</span> KB: ${docCount} docs, ${srcCount} sources (${sizeKB}KB)`;
+    } catch {
+      el.innerHTML = '<span style="color:var(--text-muted)">KB: --</span>';
+    }
   }
 
   _showCreateDialog() {
@@ -445,8 +466,25 @@ export class AgentsPage {
     document.getElementById('close-knowledge-sheet')?.addEventListener('click', close);
     document.getElementById('knowledge-backdrop')?.addEventListener('click', close);
 
-    // Load documents
+    // Load documents and web sources
     this._loadKnowledgeDocs(agent.id);
+    this._loadWebSources(agent.id);
+
+    // Add web source handler
+    const addWebBtn = document.getElementById('add-web-source');
+    const webUrlInput = document.getElementById('web-source-url');
+    if (addWebBtn && webUrlInput) {
+      addWebBtn.addEventListener('click', async () => {
+        const url = webUrlInput.value.trim();
+        if (!url) { showToast('Enter a URL', 'error'); return; }
+        try {
+          await this.api._post(`/api/agents/${agent.id}/sources`, { url, name: new URL(url).hostname });
+          showToast('Web source added', 'success');
+          webUrlInput.value = '';
+          this._loadWebSources(agent.id);
+        } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }
+      });
+    }
 
     // Upload handler
     const uploadInput = document.getElementById('knowledge-upload');
@@ -483,16 +521,23 @@ export class AgentsPage {
         return;
       }
       container.innerHTML = docs.map(doc => `
-        <div class="knowledge-doc-item">
+        <div class="knowledge-doc-item" data-doc-id="${escapeHtml(doc.id)}">
           <div class="knowledge-doc-info">
             <span class="knowledge-doc-name">${escapeHtml(doc.filename || doc.id)}</span>
-            <span class="knowledge-doc-meta">${doc.file_type || 'txt'} ${doc.file_size ? `- ${(doc.file_size / 1024).toFixed(1)}KB` : ''}</span>
+            <span class="knowledge-doc-meta">${doc.file_type || 'txt'} ${doc.file_size ? `- ${(doc.file_size / 1024).toFixed(1)}KB` : ''}${doc.chunk_count ? ` - ${doc.chunk_count} chunks` : ''}${doc.added_by && doc.added_by !== 'user' ? ` - via ${doc.added_by}` : ''}</span>
           </div>
-          <button class="btn btn-sm btn-ghost knowledge-delete-btn" data-doc-id="${escapeHtml(doc.id)}" style="color:var(--accent-red)">&times;</button>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span class="badge" style="font-size:10px;padding:2px 6px" title="Priority: ${doc.priority || 50}">P${doc.priority || 50}</span>
+            <button class="btn btn-sm btn-ghost knowledge-edit-btn" data-doc-id="${escapeHtml(doc.id)}" title="Edit">&#9998;</button>
+            <button class="btn btn-sm btn-ghost knowledge-archive-btn" data-doc-id="${escapeHtml(doc.id)}" title="Archive" style="color:var(--accent-yellow)">&#128451;</button>
+            <button class="btn btn-sm btn-ghost knowledge-delete-btn" data-doc-id="${escapeHtml(doc.id)}" style="color:var(--accent-red)" title="Delete">&times;</button>
+          </div>
         </div>
       `).join('');
+      // Delete buttons
       container.querySelectorAll('.knowledge-delete-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
+          if (!confirm('Permanently delete this document?')) return;
           try {
             await this.api._delete(`/api/agents/${agentId}/knowledge/${btn.dataset.docId}`);
             showToast('Document removed', 'success');
@@ -500,9 +545,103 @@ export class AgentsPage {
           } catch (err) { showToast(`Delete failed: ${err.message}`, 'error'); }
         });
       });
+      // Archive (soft-delete) buttons
+      container.querySelectorAll('.knowledge-archive-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await this.api._post(`/api/agents/${agentId}/knowledge/${btn.dataset.docId}/archive`);
+            showToast('Document archived', 'success');
+            this._loadKnowledgeDocs(agentId);
+          } catch (err) { showToast(`Archive failed: ${err.message}`, 'error'); }
+        });
+      });
+      // Inline edit buttons
+      container.querySelectorAll('.knowledge-edit-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const docId = btn.dataset.docId;
+          try {
+            const doc = await this.api._get(`/api/agents/${agentId}/knowledge/${docId}`);
+            this._showEditDocDialog(agentId, doc);
+          } catch (err) { showToast(`Failed to load: ${err.message}`, 'error'); }
+        });
+      });
     } catch {
       container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--font-size-sm)">Could not load documents.</p>';
     }
+  }
+
+  async _loadWebSources(agentId) {
+    const container = document.getElementById('web-sources-list');
+    if (!container) return;
+    try {
+      const sources = await this.api._get(`/api/agents/${agentId}/sources`);
+      if (!sources || sources.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--font-size-sm)">No web sources configured.</p>';
+        return;
+      }
+      container.innerHTML = sources.map(src => `
+        <div class="knowledge-doc-item">
+          <div class="knowledge-doc-info">
+            <span class="knowledge-doc-name">${escapeHtml(src.name || src.url)}</span>
+            <span class="knowledge-doc-meta">${escapeHtml(src.url)} ${src.auto_refresh ? '(auto-refresh)' : ''}</span>
+          </div>
+          <button class="btn btn-sm btn-ghost web-source-delete-btn" data-source-id="${escapeHtml(src.id)}" style="color:var(--accent-red)">&times;</button>
+        </div>
+      `).join('');
+      container.querySelectorAll('.web-source-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await this.api._delete(`/api/agents/${agentId}/sources/${btn.dataset.sourceId}`);
+            showToast('Web source removed', 'success');
+            this._loadWebSources(agentId);
+          } catch (err) { showToast(`Delete failed: ${err.message}`, 'error'); }
+        });
+      });
+    } catch {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--font-size-sm)">Could not load web sources.</p>';
+    }
+  }
+
+  _showEditDocDialog(agentId, doc) {
+    const body = `
+      <div class="form-group">
+        <label class="input-label">Filename</label>
+        <input type="text" class="input" id="edit-doc-filename" value="${escapeHtml(doc.filename || '')}" />
+      </div>
+      <div class="form-group">
+        <label class="input-label">Priority (0-100)</label>
+        <input type="number" class="input" id="edit-doc-priority" min="0" max="100" value="${doc.priority || 50}" />
+      </div>
+      <div class="form-group">
+        <label class="input-label">Language</label>
+        <input type="text" class="input" id="edit-doc-language" value="${escapeHtml(doc.language || '')}" placeholder="e.g. en, es, fr" />
+      </div>
+    `;
+
+    const self = this;
+    showModal({
+      title: `Edit: ${doc.filename}`,
+      body,
+      actions: [
+        {
+          label: 'Save',
+          class: 'btn btn-primary',
+          onClick: async () => {
+            try {
+              await self.api._put(`/api/agents/${agentId}/knowledge/${doc.id}`, {
+                filename: document.getElementById('edit-doc-filename')?.value || doc.filename,
+                priority: parseInt(document.getElementById('edit-doc-priority')?.value, 10) || 50,
+                language: document.getElementById('edit-doc-language')?.value || null,
+              });
+              showToast('Document updated', 'success');
+              hideModal();
+              self._loadKnowledgeDocs(agentId);
+            } catch (err) { showToast(`Update failed: ${err.message}`, 'error'); }
+          },
+        },
+        { label: 'Cancel', class: 'btn btn-ghost', onClick: () => hideModal() },
+      ],
+    });
   }
 
   async _toggleAgent(id, action) {

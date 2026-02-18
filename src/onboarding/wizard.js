@@ -416,16 +416,29 @@ class OnboardingWizard {
       if (!preview) throw new Error("No preview generated — run generatePreview first");
 
       // Create agents via AgentManagerService
+      // Non-router agents are created as "pending" for HITL approval.
+      // The router (Concierge) is always active since it's a system agent.
       if (this.agentManager) {
         for (const agentConfig of preview.agents || []) {
-          this.agentManager.createAgent({
+          const isRouter = agentConfig.isRouter || false;
+          const agent = this.agentManager.createAgent({
             name: agentConfig.name,
             domain: agentConfig.domain,
             description: `Auto-deployed for ${wizard.organization_name}. ${agentConfig.capabilities.join(", ")}`,
             capabilities: agentConfig.capabilities || [],
-            status: "active",
-            is_router: agentConfig.isRouter || false,
+            status: isRouter ? "active" : "pending",
+            is_router: isRouter,
           });
+
+          // Provision KB from discovered web sources for non-router agents
+          if (!isRouter && agent) {
+            const deptSources = (wizard.departments || [])
+              .filter(d => d.enabled && d.url && d.suggestedDomain === agentConfig.domain)
+              .map(d => ({ url: d.url, name: d.name }));
+            if (deptSources.length > 0) {
+              this.agentManager.provisionKBFromWebSources(agent.id, deptSources);
+            }
+          }
         }
 
         // Regenerate concierge to know about new agents
