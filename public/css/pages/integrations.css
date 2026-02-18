@@ -1,0 +1,146 @@
+/* ==========================================================================
+   AIOS V2 - Integrations Page
+   ========================================================================== */
+
+/* --- Toolbar --- */
+.integrations-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.integrations-search {
+  position: relative;
+}
+
+.integrations-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.integrations-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.integrations-filter-chip:hover {
+  border-color: var(--accent-blue-border);
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.integrations-filter-chip.active {
+  background: var(--accent-blue-dim);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.integrations-filter-chip .chip-count {
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+}
+
+/* --- Grid --- */
+.integrations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+/* --- Connector Card --- */
+.connector-card {
+  padding: var(--space-5);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.connector-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.connector-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.connector-card-icon {
+  flex-shrink: 0;
+}
+
+.connector-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.connector-card-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-white);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.3;
+}
+
+.connector-card-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3) 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.connector-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.connector-health {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.connector-card-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* --- Add Connector Form --- */
+.add-connector-form .input-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .integrations-grid {
+    grid-template-columns: 1fr;
+  }
+}

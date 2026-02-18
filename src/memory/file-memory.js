@@ -1,4 +1,5 @@
 const fs = require("fs");
+const fsPromises = require("fs").promises;
 const path = require("path");
 
 class FileMemory {
@@ -7,6 +8,10 @@ class FileMemory {
     this.projectRoot = projectRoot;
   }
 
+  /**
+   * Get main memory content. Synchronous for context-builder compatibility,
+   * but reads are small files and infrequent (once per request).
+   */
   getMainMemory() {
     const memPath = path.join(this.memoryDir, "MEMORY.md");
     if (fs.existsSync(memPath)) return fs.readFileSync(memPath, "utf-8");
@@ -24,10 +29,30 @@ class FileMemory {
     return "";
   }
 
-  listMemoryFiles() {
+  async listMemoryFiles() {
+    try {
+      const files = await fsPromises.readdir(this.memoryDir);
+      const results = [];
+      for (const f of files) {
+        if (!f.endsWith(".md") && !f.endsWith(".json")) continue;
+        const filePath = path.join(this.memoryDir, f);
+        const stat = await fsPromises.stat(filePath);
+        results.push({ name: f, path: filePath, size: stat.size });
+      }
+      return results;
+    } catch (err) {
+      if (err.code === "ENOENT") return [];
+      throw err;
+    }
+  }
+
+  /**
+   * Synchronous list for callers that haven't been converted to async yet.
+   */
+  listMemoryFilesSync() {
     if (!fs.existsSync(this.memoryDir)) return [];
     return fs.readdirSync(this.memoryDir)
-      .filter((f) => f.endsWith(".md"))
+      .filter((f) => f.endsWith(".md") || f.endsWith(".json"))
       .map((f) => ({
         name: f,
         path: path.join(this.memoryDir, f),
@@ -35,9 +60,14 @@ class FileMemory {
       }));
   }
 
-  writeMemoryFile(filename, content) {
-    if (!fs.existsSync(this.memoryDir)) fs.mkdirSync(this.memoryDir, { recursive: true });
-    fs.writeFileSync(path.join(this.memoryDir, filename), content, "utf-8");
+  async writeMemoryFile(filename, content) {
+    // Sanitize filename to prevent directory traversal
+    const safeName = path.basename(filename);
+    if (!safeName || safeName !== filename) {
+      throw new Error("Invalid filename");
+    }
+    if (!fs.existsSync(this.memoryDir)) await fsPromises.mkdir(this.memoryDir, { recursive: true });
+    await fsPromises.writeFile(path.join(this.memoryDir, safeName), content, "utf-8");
   }
 }
 

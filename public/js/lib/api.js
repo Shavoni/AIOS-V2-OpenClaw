@@ -1,8 +1,15 @@
 const API = {
   base: '/api',
 
+  _headers() {
+    const h = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('aios_token');
+    if (token) h['Authorization'] = 'Bearer ' + token;
+    return h;
+  },
+
   async get(path) {
-    const res = await fetch(this.base + path);
+    const res = await fetch(this.base + path, { headers: this._headers() });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
@@ -10,7 +17,7 @@ const API = {
   async post(path, body) {
     const res = await fetch(this.base + path, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this._headers(),
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -18,7 +25,7 @@ const API = {
   },
 
   async del(path) {
-    const res = await fetch(this.base + path, { method: 'DELETE' });
+    const res = await fetch(this.base + path, { method: 'DELETE', headers: this._headers() });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },

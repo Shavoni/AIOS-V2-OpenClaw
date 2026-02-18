@@ -14,6 +14,8 @@ class FallbackChain {
 
       try {
         const result = await provider.complete(messages, options);
+        // Clear failure record on success so provider is immediately available next time
+        this._failures.delete(provider.id);
         return { ...result, attemptCount: errors.length + 1, failedProviders: errors.map((e) => e.id) };
       } catch (err) {
         this._failures.set(provider.id, now);
@@ -41,6 +43,8 @@ class FallbackChain {
         for await (const chunk of stream) {
           yield chunk;
         }
+        // Clear failure record on success
+        this._failures.delete(provider.id);
         return;
       } catch (err) {
         this._failures.set(provider.id, now);

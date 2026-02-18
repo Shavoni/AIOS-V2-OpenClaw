@@ -1,0 +1,298 @@
+/* ==========================================================================
+   AIOS V2 Dashboard - Design Tokens & CSS Custom Properties
+   ========================================================================== */
+
+:root {
+  /* --- Color Palette --- */
+
+  /* Backgrounds */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a28;
+  --bg-elevated: #1e1e2e;
+  --bg-surface: rgba(255, 255, 255, 0.03);
+  --bg-surface-hover: rgba(255, 255, 255, 0.06);
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Text */
+  --text-primary: #e0e0e0;
+  --text-secondary: #888888;
+  --text-muted: #999999;
+  --text-white: #ffffff;
+  --text-inverse: #0a0a0f;
+
+  /* Accent Colors */
+  --accent-green: #00ff88;
+  --accent-green-dim: rgba(0, 255, 136, 0.15);
+  --accent-green-glow: rgba(0, 255, 136, 0.4);
+  --accent-green-border: rgba(0, 255, 136, 0.3);
+
+  --accent-blue: #00b4d8;
+  --accent-blue-dim: rgba(0, 180, 216, 0.15);
+  --accent-blue-glow: rgba(0, 180, 216, 0.4);
+  --accent-blue-border: rgba(0, 180, 216, 0.3);
+
+  --accent-purple: #7b2ff7;
+  --accent-purple-dim: rgba(123, 47, 247, 0.15);
+  --accent-purple-glow: rgba(123, 47, 247, 0.4);
+  --accent-purple-border: rgba(123, 47, 247, 0.3);
+
+  --accent-orange: #ff9f43;
+  --accent-orange-dim: rgba(255, 159, 67, 0.15);
+  --accent-orange-glow: rgba(255, 159, 67, 0.4);
+  --accent-orange-border: rgba(255, 159, 67, 0.3);
+
+  --accent-red: #ff6b6b;
+  --accent-red-dim: rgba(255, 107, 107, 0.15);
+  --accent-red-glow: rgba(255, 107, 107, 0.4);
+  --accent-red-border: rgba(255, 107, 107, 0.3);
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-focus: var(--accent-green);
+
+  /* Glass morphism */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(10px);
+  --glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --glass-border-hover: rgba(0, 255, 136, 0.3);
+
+  /* --- Typography --- */
+  --font-body: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+
+  --font-size-xs: 0.7rem;
+  --font-size-sm: 0.8rem;
+  --font-size-base: 0.9rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.1rem;
+  --font-size-xl: 1.3rem;
+  --font-size-2xl: 1.6rem;
+  --font-size-3xl: 1.8rem;
+  --font-size-4xl: 2.4rem;
+  --font-size-hero: 3.5rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.7;
+
+  --letter-spacing-tight: -1px;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 1.5px;
+  --letter-spacing-wider: 2px;
+
+  /* --- Spacing --- */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+
+  /* --- Border Radius --- */
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 2rem;
+
+  /* --- Shadows --- */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-green: 0 8px 32px rgba(0, 255, 136, 0.1);
+  --shadow-blue: 0 8px 32px rgba(0, 180, 216, 0.1);
+  --shadow-purple: 0 8px 32px rgba(123, 47, 247, 0.1);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* --- Layout Dimensions --- */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 64px;
+  --header-height: 64px;
+  --chat-sidebar-width: 280px;
+  --content-max-width: 1400px;
+  --input-height: 42px;
+  --input-height-lg: 52px;
+
+  /* --- Transitions --- */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-smooth: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  --transition-spring: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --- Z-Index Scale --- */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+  --z-overlay: 800;
+
+  /* --- Gradient Definitions --- */
+  --gradient-brand: linear-gradient(135deg, #00ff88, #00b4d8, #7b2ff7);
+  --gradient-green: linear-gradient(135deg, #00ff88, #00cc6a);
+  --gradient-blue: linear-gradient(135deg, #00b4d8, #0088a8);
+  --gradient-purple: linear-gradient(135deg, #7b2ff7, #5a1db8);
+  --gradient-dark: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+
+  /* --- Domain Gradient Presets --- */
+  --gradient-dashboard: linear-gradient(135deg, #7b2ff7, #6366f1, #4f46e5);
+  --gradient-agents: linear-gradient(135deg, #00b4d8, #0088a8, #006d8a);
+  --gradient-approvals: linear-gradient(135deg, #f59e0b, #ea580c, #dc2626);
+  --gradient-audit: linear-gradient(135deg, #ef4444, #e11d48, #be123c);
+  --gradient-metrics: linear-gradient(135deg, #06b6d4, #0284c7, #0369a1);
+  --gradient-settings: linear-gradient(135deg, #6366f1, #7c3aed, #9333ea);
+  --gradient-chat: linear-gradient(135deg, #10b981, #059669, #047857);
+  --gradient-onboarding: linear-gradient(135deg, #8b5cf6, #7c3aed, #6d28d9);
+  --gradient-skills: linear-gradient(135deg, #f59e0b, #d97706, #b45309);
+  --gradient-memory: linear-gradient(135deg, #ec4899, #d946ef, #a855f7);
+  --gradient-models: linear-gradient(135deg, #14b8a6, #0d9488, #0f766e);
+  --gradient-login: linear-gradient(135deg, #00ff88, #00b4d8);
+
+  /* --- Agent Domain Colors --- */
+  --domain-hr: #8b5cf6;
+  --domain-hr-dim: rgba(139, 92, 246, 0.15);
+  --domain-finance: #14b8a6;
+  --domain-finance-dim: rgba(20, 184, 166, 0.15);
+  --domain-legal: #3b82f6;
+  --domain-legal-dim: rgba(59, 130, 246, 0.15);
+  --domain-health: #22c55e;
+  --domain-health-dim: rgba(34, 197, 94, 0.15);
+  --domain-comms: #f59e0b;
+  --domain-comms-dim: rgba(245, 158, 11, 0.15);
+  --domain-devops: #06b6d4;
+  --domain-devops-dim: rgba(6, 182, 212, 0.15);
+  --domain-research: #ec4899;
+  --domain-research-dim: rgba(236, 72, 153, 0.15);
+  --domain-general: #6366f1;
+  --domain-general-dim: rgba(99, 102, 241, 0.15);
+  --domain-concierge: #ff9f43;
+  --domain-concierge-dim: rgba(255, 159, 67, 0.15);
+
+  /* --- HITL Mode Colors --- */
+  --hitl-inform: #3b82f6;
+  --hitl-inform-dim: rgba(59, 130, 246, 0.15);
+  --hitl-auto: #22c55e;
+  --hitl-auto-dim: rgba(34, 197, 94, 0.15);
+  --hitl-draft: #f59e0b;
+  --hitl-draft-dim: rgba(245, 158, 11, 0.15);
+  --hitl-review: #f97316;
+  --hitl-review-dim: rgba(249, 115, 22, 0.15);
+  --hitl-escalate: #ef4444;
+  --hitl-escalate-dim: rgba(239, 68, 68, 0.15);
+
+  /* --- Priority Colors --- */
+  --priority-urgent: #ef4444;
+  --priority-high: #f97316;
+  --priority-normal: #3b82f6;
+  --priority-low: #6b7280;
+
+  /* --- Additional Shadows --- */
+  --shadow-orange: 0 8px 32px rgba(255, 159, 67, 0.1);
+  --shadow-red: 0 8px 32px rgba(255, 107, 107, 0.1);
+}
+
+/* ==========================================================================
+   Global Animation Keyframes
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ==========================================================================
+   Light Theme Overrides
+   ========================================================================== */
+
+[data-theme="light"] {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8e8ed;
+  --bg-elevated: #ffffff;
+  --bg-surface: rgba(0, 0, 0, 0.03);
+  --bg-surface-hover: rgba(0, 0, 0, 0.06);
+  --bg-overlay: rgba(0, 0, 0, 0.3);
+
+  --text-primary: #1a1a2e;
+  --text-secondary: #555555;
+  --text-muted: #777777;
+  --text-white: #1a1a2e;
+  --text-inverse: #ffffff;
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.1);
+  --border-hover: rgba(0, 0, 0, 0.15);
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border-hover: rgba(0, 255, 136, 0.3);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+}

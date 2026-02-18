@@ -4,154 +4,52 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIOS V2 — Scotty-5</title>
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/chat.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Design System CSS -->
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/accessibility.css">
+
+  <!-- Page Styles -->
+  <link rel="stylesheet" href="/css/pages/dashboard.css">
+  <link rel="stylesheet" href="/css/pages/chat.css">
+  <link rel="stylesheet" href="/css/pages/skills.css">
+  <link rel="stylesheet" href="/css/pages/memory.css">
+  <link rel="stylesheet" href="/css/pages/models.css">
+  <link rel="stylesheet" href="/css/pages/metrics.css">
+  <link rel="stylesheet" href="/css/pages/agents.css">
+  <link rel="stylesheet" href="/css/pages/approvals.css">
+  <link rel="stylesheet" href="/css/pages/audit.css">
+  <link rel="stylesheet" href="/css/pages/settings.css">
+  <link rel="stylesheet" href="/css/pages/login.css">
+  <link rel="stylesheet" href="/css/pages/onboarding.css">
+  <link rel="stylesheet" href="/css/pages/integrations.css">
 </head>
 <body>
-  <div id="app">
-    <nav id="sidebar">
-      <div class="sidebar-header">
-        <h1 class="logo">AIOS V2</h1>
-        <span class="agent-name" id="agent-name">Scotty-5</span>
+  <a class="skip-to-content" href="#main-content">Skip to main content</a>
+
+  <div id="app" class="app-shell">
+    <aside id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation"></aside>
+    <main id="main-content" class="main-content" role="main">
+      <div class="loader-overlay">
+        <div class="spinner spinner--lg"></div>
+        <span class="text-secondary">Loading AIOS V2...</span>
       </div>
-      <ul class="nav-links">
-        <li><a href="#/dashboard" class="nav-link active" data-page="dashboard">Dashboard</a></li>
-        <li><a href="#/chat" class="nav-link" data-page="chat">Chat</a></li>
-        <li><a href="#/skills" class="nav-link" data-page="skills">Skills</a></li>
-        <li><a href="#/memory" class="nav-link" data-page="memory">Memory</a></li>
-        <li><a href="#/settings" class="nav-link" data-page="settings">Settings</a></li>
-      </ul>
-      <div class="sidebar-footer">
-        <div class="status-indicator">
-          <span class="status-dot" id="status-dot"></span>
-          <span id="status-text">Connecting...</span>
-        </div>
-      </div>
-    </nav>
-
-    <main id="content">
-      <!-- Dashboard Page -->
-      <section id="page-dashboard" class="page active">
-        <div class="page-header">
-          <h2>Dashboard</h2>
-        </div>
-        <div class="dashboard-grid" id="dashboard-grid">
-          <div class="card" id="card-agent">
-            <h3>Agent</h3>
-            <div class="card-body" id="agent-info">Loading...</div>
-          </div>
-          <div class="card" id="card-providers">
-            <h3>Providers</h3>
-            <div class="card-body" id="provider-list">Loading...</div>
-          </div>
-          <div class="card" id="card-skills">
-            <h3>Skills</h3>
-            <div class="card-body" id="skill-count">Loading...</div>
-          </div>
-          <div class="card" id="card-health">
-            <h3>System Health</h3>
-            <div class="card-body" id="health-info">Loading...</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Chat Page -->
-      <section id="page-chat" class="page">
-        <div class="chat-layout">
-          <div class="chat-sidebar">
-            <button id="new-chat-btn" class="btn btn-primary">+ New Chat</button>
-            <div id="session-list" class="session-list"></div>
-          </div>
-          <div class="chat-main">
-            <div class="chat-header">
-              <h3 id="chat-title">Select or create a chat</h3>
-              <select id="profile-select" class="profile-select">
-                <option value="main">General (GPT-4o)</option>
-                <option value="reasoning">Reasoning (o3)</option>
-                <option value="coding">Coding (Claude)</option>
-                <option value="research">Research (Gemini)</option>
-                <option value="local">Local (Private)</option>
-              </select>
-            </div>
-            <div id="messages" class="messages"></div>
-            <div class="chat-input-area">
-              <div id="typing-indicator" class="typing-indicator hidden">Scotty-5 is thinking...</div>
-              <form id="chat-form" class="chat-form">
-                <textarea id="chat-input" placeholder="Type your message..." rows="1"></textarea>
-                <button type="submit" class="btn btn-send" id="send-btn">Send</button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Skills Page -->
-      <section id="page-skills" class="page">
-        <div class="page-header">
-          <h2>Skills</h2>
-        </div>
-        <div id="skills-grid" class="skills-grid">Loading skills...</div>
-      </section>
-
-      <!-- Memory Page -->
-      <section id="page-memory" class="page">
-        <div class="page-header">
-          <h2>Memory</h2>
-        </div>
-        <div class="memory-layout">
-          <div id="memory-sessions" class="memory-sessions">
-            <h3>Sessions</h3>
-            <div id="memory-session-list"></div>
-          </div>
-          <div id="memory-content" class="memory-content">
-            <h3>Files</h3>
-            <div id="memory-file-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Settings Page -->
-      <section id="page-settings" class="page">
-        <div class="page-header">
-          <h2>Settings</h2>
-        </div>
-        <div class="settings-layout">
-          <div class="settings-section">
-            <h3>Providers</h3>
-            <div id="settings-providers"></div>
-          </div>
-          <div class="settings-section">
-            <h3>Agent Profiles</h3>
-            <div id="settings-profiles"></div>
-          </div>
-          <div class="settings-section">
-            <h3>Governance</h3>
-            <p>Constitutional rules protect against unauthorized external posting, PII leakage, legal risk, and financial actions.</p>
-            <div id="settings-governance">
-              <ul>
-                <li><strong>No External Posting</strong> — ESCALATE required for public statements</li>
-                <li><strong>PII Protection</strong> — DRAFT mode + local-only routing</li>
-                <li><strong>Legal Review</strong> — DRAFT mode for legal content</li>
-                <li><strong>Financial Safeguard</strong> — ESCALATE for financial actions</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   </div>
 
-  <script src="/js/lib/api.js"></script>
-  <script src="/js/lib/socket-client.js"></script>
-  <script src="/js/lib/markdown.js"></script>
-  <script src="/js/dashboard.js"></script>
-  <script src="/js/chat.js"></script>
-  <script src="/js/skills.js"></script>
-  <script src="/js/memory.js"></script>
-  <script src="/js/settings.js"></script>
-  <script src="/js/app.js"></script>
+  <!-- Toast notification container -->
+  <div id="toast-container" class="toast-container" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- Screen reader route announcements -->
+  <div id="route-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Socket.io Client (served automatically by server) -->
+  <script src="/socket.io/socket.io.js" defer></script>
+
+  <!-- App Bootstrap (ES Module) -->
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>

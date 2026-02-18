@@ -25,17 +25,32 @@ class MessageStore {
   }
 
   deleteSession(sessionId) {
+    // Delete messages first to avoid orphans (FK may not cascade with sql.js)
+    this.db.run("DELETE FROM messages WHERE session_id = ?", [sessionId]);
+    this.db.run("DELETE FROM audit_log WHERE session_id = ?", [sessionId]);
     this.db.run("DELETE FROM sessions WHERE id = ?", [sessionId]);
     this.saveFn();
   }
 
   addMessage(sessionId, role, content, metadata = {}) {
+    // Auto-create session if it doesn't exist (frontend generates IDs client-side)
+    this._ensureSession(sessionId);
     this.db.run(
       "INSERT INTO messages (session_id, role, content, metadata) VALUES (?, ?, ?, ?)",
       [sessionId, role, content, JSON.stringify(metadata)]
     );
     this.db.run("UPDATE sessions SET updated_at = datetime('now') WHERE id = ?", [sessionId]);
     this.saveFn();
+  }
+
+  _ensureSession(sessionId) {
+    const stmt = this.db.prepare("SELECT id FROM sessions WHERE id = ?");
+    stmt.bind([sessionId]);
+    const exists = stmt.step();
+    stmt.free();
+    if (!exists) {
+      this.db.run("INSERT INTO sessions (id, title, profile) VALUES (?, ?, ?)", [sessionId, "New Chat", "main"]);
+    }
   }
 
   getMessages(sessionId, limit = 100) {

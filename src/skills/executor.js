@@ -8,15 +8,30 @@ class SkillExecutor {
   }
 
   async execute(skillId, scriptName, args = []) {
-    const scriptDir = path.join(this.skillsDir, skillId, "scripts");
+    // Sanitize inputs to prevent path traversal
+    const safeSkillId = path.basename(String(skillId));
+    const safeScriptName = path.basename(String(scriptName));
+    if (!safeSkillId || !safeScriptName) {
+      return { success: false, output: "", error: "Invalid skill or script name", duration: 0 };
+    }
+
+    const scriptDir = path.join(this.skillsDir, safeSkillId, "scripts");
+
+    // Verify scriptDir is within skillsDir
+    const resolvedDir = path.resolve(scriptDir);
+    const resolvedBase = path.resolve(this.skillsDir);
+    if (!resolvedDir.startsWith(resolvedBase + path.sep)) {
+      return { success: false, output: "", error: "Invalid skill path", duration: 0 };
+    }
+
     if (!fs.existsSync(scriptDir)) {
       return { success: false, output: "", error: "No scripts directory", duration: 0 };
     }
 
     const candidates = [
-      path.join(scriptDir, `${scriptName}.js`),
-      path.join(scriptDir, `${scriptName}.sh`),
-      path.join(scriptDir, scriptName),
+      path.join(scriptDir, `${safeScriptName}.js`),
+      path.join(scriptDir, `${safeScriptName}.sh`),
+      path.join(scriptDir, safeScriptName),
     ];
 
     let scriptPath = null;

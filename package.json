@@ -18,16 +18,20 @@
   "author": "Shavoni <shavoni@def1live.com>",
   "license": "MIT",
   "dependencies": {
-    "sql.js": "^1.11.0",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
     "gray-matter": "^4.0.3",
     "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
     "marked": "^15.0.0",
     "morgan": "^1.10.0",
     "openai": "^4.80.0",
     "socket.io": "^4.8.0",
+    "sql.js": "^1.11.0",
     "uuid": "^11.0.0"
   },
   "devDependencies": {

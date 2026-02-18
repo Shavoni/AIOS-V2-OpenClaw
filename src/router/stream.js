@@ -10,9 +10,15 @@ function streamToSSE(res, asyncIterable, metadata = {}) {
     res.write(`event: meta\ndata: ${JSON.stringify(metadata)}\n\n`);
   }
 
+  let aborted = false;
+
+  // Handle client disconnect
+  res.on("close", () => { aborted = true; });
+
   (async () => {
     try {
       for await (const chunk of asyncIterable) {
+        if (aborted) break;
         if (chunk.done) {
           res.write(`event: done\ndata: ${JSON.stringify({ hitlMode: chunk.hitlMode })}\n\n`);
           break;
@@ -20,9 +26,14 @@ function streamToSSE(res, asyncIterable, metadata = {}) {
         res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk.text, model: chunk.model, provider: chunk.provider })}\n\n`);
       }
     } catch (err) {
-      res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+      if (!aborted) {
+        try {
+          res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+        } catch (_) { /* client already disconnected */ }
+      }
+      console.error("SSE stream error:", err.message);
     } finally {
-      res.end();
+      if (!aborted) res.end();
     }
   })();
 }

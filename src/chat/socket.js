@@ -1,11 +1,24 @@
 const { Server } = require("socket.io");
+const { eventBus } = require("../services/event-bus");
+const { sanitizeMessage } = require("../middleware/sanitize");
+const { createSocketAuthMiddleware } = require("../middleware/socket-auth");
 
-function setupSocket(httpServer, handler, memory) {
+function setupSocket(httpServer, handler, memory, authService) {
+  const corsOrigin = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+    : ['http://127.0.0.1:3000', 'http://localhost:3000'];
+
   const io = new Server(httpServer, {
-    cors: { origin: "*" },
+    cors: { origin: corsOrigin, credentials: true },
     pingTimeout: 60000,
   });
 
+  // ─── Authentication middleware ─────────────────────────────
+  if (authService) {
+    io.use(createSocketAuthMiddleware(authService));
+  }
+
+  // ─── Client connections ──────────────────────────────────
   io.on("connection", (socket) => {
     let currentSession = null;
 
@@ -16,11 +29,22 @@ function setupSocket(httpServer, handler, memory) {
       socket.emit("session-joined", { sessionId });
     });
 
+    // Join rooms for real-time updates
+    socket.on("join-room", (room) => {
+      socket.join(room);
+    });
+
+    socket.on("leave-room", (room) => {
+      socket.leave(room);
+    });
+
     socket.on("send-message", async ({ sessionId, message, profile }) => {
       if (!sessionId || !message) {
         socket.emit("error", { message: "sessionId and message required" });
         return;
       }
+
+      message = sanitizeMessage(message);
 
       socket.emit("typing", true);
 
@@ -74,6 +98,52 @@ function setupSocket(httpServer, handler, memory) {
       }
     });
   });
+
+  // ─── Event bus → Socket.io broadcasting ──────────────────
+  // Store handlers so they can be cleaned up on server shutdown
+
+  const handlers = {
+    "hitl:created": (approval) => {
+      io.to("approvals").emit("hitl:created", approval);
+      io.to("dashboard").emit("hitl:created", approval);
+    },
+    "hitl:approved": (approval) => {
+      io.to("approvals").emit("hitl:approved", approval);
+      io.to("dashboard").emit("hitl:approved", approval);
+    },
+    "hitl:rejected": (approval) => {
+      io.to("approvals").emit("hitl:rejected", approval);
+      io.to("dashboard").emit("hitl:rejected", approval);
+    },
+    "chat:query": (event) => {
+      io.to("dashboard").emit("chat:query", {
+        agent: event.agent_name,
+        latency: event.latency_ms,
+        hitlMode: event.hitl_mode,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    "chat:routed": (info) => {
+      io.to("dashboard").emit("chat:routed", info);
+    },
+    "dashboard:metrics": (metrics) => {
+      io.to("dashboard").emit("dashboard:metrics", metrics);
+    },
+    "audit:event": (event) => {
+      io.to("audit").emit("audit:event", event);
+    },
+  };
+
+  for (const [event, handler] of Object.entries(handlers)) {
+    eventBus.on(event, handler);
+  }
+
+  // Expose cleanup for graceful shutdown
+  io._cleanupEventBus = () => {
+    for (const [event, handler] of Object.entries(handlers)) {
+      eventBus.off(event, handler);
+    }
+  };
 
   return io;
 }

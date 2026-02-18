@@ -12,7 +12,31 @@
       "Bash(taskkill:*)",
       "Bash(fuser:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(node:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(curl.exe:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(git clone:*)",
+      "Bash(npm ls:*)",
+      "Bash(dir:*)",
+      "Bash(npm test:*)",
+      "Bash(cmd //c \"taskkill /PID 5616 /F\")",
+      "Bash(cmd //c \"netstat -ano | findstr :3000 | findstr LISTEN\")",
+      "Bash(cmd //c \"taskkill /PID 49492 /F\")",
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(echo:*)",
+      "Bash(cd:*)",
+      "Bash(printf:*)",
+      "Bash(/usr/bin/echo:*)",
+      "Bash(bash -c \"echo test\")",
+      "Bash(bash -c 'ls \"\"/e/My AI Projects and Apps/AIOS-V2-OpenClaw-master/public/js/pages/\"\"')",
+      "Bash(git -C \"E:/My AI Projects and Apps/AIOS-V2-OpenClaw-master\" status -u)",
+      "Bash(git --version)",
+      "Bash(git -C \"E:/My AI Projects and Apps/AIOS-V2-OpenClaw-master\" status)"
     ]
   }
 }

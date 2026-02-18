@@ -1,0 +1,225 @@
+/* ==========================================================================
+   AIOS V2 - Agents Page (V1-Level Polish)
+   ========================================================================== */
+
+/* --- Agent Grid --- */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+/* --- Agent Card --- */
+.agent-card {
+  padding: var(--space-5);
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+  position: relative;
+}
+
+.agent-card::before {
+  background: var(--card-accent, var(--accent-green)) !important;
+}
+
+.agent-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.agent-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.agent-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+}
+
+.agent-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-card-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-white);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.agent-card-title {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin: var(--space-1) 0 0;
+}
+
+.agent-card-menu {
+  flex-shrink: 0;
+}
+
+.agent-card-domain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.agent-card-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3);
+  line-height: var(--line-height-base);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.agent-card-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* --- Concierge Router Card --- */
+.concierge-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.concierge-card-accent {
+  height: 4px;
+  background: linear-gradient(135deg, #ff9f43, #f59e0b, #f97316);
+}
+
+.concierge-card-body {
+  padding: var(--space-6);
+}
+
+.concierge-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.concierge-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--domain-concierge-dim);
+  color: var(--domain-concierge);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.concierge-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-white);
+  margin: 0;
+}
+
+.concierge-title {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: var(--space-1) 0 0;
+}
+
+.concierge-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4);
+  line-height: var(--line-height-relaxed);
+}
+
+.concierge-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* --- Knowledge Sheet Overrides --- */
+.knowledge-doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.knowledge-doc-item:hover {
+  background: var(--bg-surface);
+}
+
+.knowledge-doc-item:last-child {
+  border-bottom: none;
+}
+
+.knowledge-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.knowledge-doc-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.knowledge-doc-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* --- Detail Panel (legacy) --- */
+.agent-detail-panel {
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+}
+
+.agent-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.code-block {
+  background: rgba(0, 0, 0, 0.3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  color: var(--text-primary);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .agents-grid {
+    grid-template-columns: 1fr;
+  }
+  .concierge-header {
+    flex-wrap: wrap;
+  }
+}
