@@ -64,6 +64,10 @@ const { createEmbeddingProvider } = require('./rag/embedding-provider');
 const { VectorStore } = require('./rag/vector-store');
 const { EmbeddingClassifier } = require('./governance/embedding-classifier');
 
+// Document parsing + web crawling
+const { DocumentParser } = require('./rag/document-parser');
+const { WebCrawler } = require('./agents/web-crawler');
+
 async function createApp() {
   // 1. Load config
   const config = loadConfig();
@@ -162,8 +166,12 @@ async function createApp() {
   // Core chat routes — viewer access required
   apiRoutes.use('/', authRequired('viewer'), createChatRoutes(handler, memory, skills, agent, router, config));
 
+  // Document parser + web crawler
+  const documentParser = new DocumentParser();
+  const webCrawler = new WebCrawler();
+
   // Agent management — operator access required
-  apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier));
+  apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler }));
 
   // HITL approvals — operator access required
   apiRoutes.use('/hitl', authRequired('operator'), createHITLRoutes(hitlManager));

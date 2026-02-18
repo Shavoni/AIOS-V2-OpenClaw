@@ -1,7 +1,8 @@
 const express = require("express");
 const { validate, schemas } = require("../middleware/validation");
 
-function createAgentRoutes(agentManager, classifier) {
+function createAgentRoutes(agentManager, classifier, deps = {}) {
+  const { rag, documentParser, webCrawler } = deps;
   const router = express.Router();
 
   // GET /api/agents — List all agents
@@ -121,9 +122,9 @@ function createAgentRoutes(agentManager, classifier) {
     }
   });
 
-  const ALLOWED_KNOWLEDGE_TYPES = new Set(["txt", "md", "pdf", "json", "csv", "html", "xml", "yaml", "yml"]);
+  const ALLOWED_KNOWLEDGE_TYPES = new Set(["txt", "md", "pdf", "docx", "json", "csv", "html", "xml", "yaml", "yml"]);
 
-  router.post("/:id/knowledge", (req, res) => {
+  router.post("/:id/knowledge", async (req, res) => {
     try {
       const fileType = (req.body.file_type || "").toLowerCase();
       if (!ALLOWED_KNOWLEDGE_TYPES.has(fileType)) {
@@ -132,15 +133,42 @@ function createAgentRoutes(agentManager, classifier) {
       if (req.body.file_size && req.body.file_size > 10 * 1024 * 1024) {
         return res.status(400).json({ error: "File size exceeds 10MB limit" });
       }
-      // Persist content in metadata so it survives server restarts for re-indexing
+
       const docData = { ...req.body };
-      if (docData.content) {
-        const existingMeta = docData.metadata || {};
-        docData.metadata = { ...existingMeta, content: docData.content };
-        delete docData.content;
+      let parsedText = docData.content || "";
+
+      // Parse content through DocumentParser if available
+      if (parsedText && documentParser) {
+        const parseResult = await documentParser.parse(parsedText, fileType, {
+          encoding: docData.encoding || undefined,
+        });
+        parsedText = parseResult.text || "";
       }
+
+      // Persist parsed content in metadata for restart re-indexing
+      if (parsedText) {
+        const existingMeta = docData.metadata || {};
+        docData.metadata = { ...existingMeta, content: parsedText };
+        delete docData.content;
+        delete docData.encoding;
+      }
+
       const doc = agentManager.addKnowledgeDocument(req.params.id, docData);
-      res.status(201).json(doc);
+
+      // Auto-index into RAG pipeline if content and rag are available
+      let chunkCount = 0;
+      if (parsedText && rag) {
+        chunkCount = rag.indexDocument(req.params.id, doc.id, parsedText, {
+          filename: doc.filename,
+          file_type: doc.file_type,
+        });
+        if (typeof chunkCount === "number") {
+          // Update chunk_count on the document
+          agentManager.updateKnowledgeDocument(doc.id, { chunk_count: chunkCount });
+        }
+      }
+
+      res.status(201).json({ ...doc, chunk_count: typeof chunkCount === "number" ? chunkCount : 0 });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -257,6 +285,35 @@ function createAgentRoutes(agentManager, classifier) {
     try {
       const source = agentManager.addWebSource(req.params.id, req.body);
       res.status(201).json(source);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST — refresh all stale web sources (must come before :sourceId routes)
+  router.post("/:id/sources/refresh-all", async (req, res) => {
+    try {
+      if (!webCrawler || !rag) return res.status(501).json({ error: "Web crawling not configured" });
+      const sources = agentManager.listWebSources(req.params.id);
+      const stats = await webCrawler.refreshAllStale(sources, { rag, agentManager });
+      res.json(stats);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST — refresh a single web source
+  router.post("/:id/sources/:sourceId/refresh", async (req, res) => {
+    try {
+      if (!webCrawler || !rag) return res.status(501).json({ error: "Web crawling not configured" });
+      const sources = agentManager.listWebSources(req.params.id);
+      const source = sources.find(s => s.id === req.params.sourceId);
+      if (!source) return res.status(404).json({ error: "Web source not found" });
+      const result = await webCrawler.refreshWebSource(
+        { ...source, agent_id: req.params.id },
+        { rag, agentManager }
+      );
+      res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
