@@ -44,7 +44,7 @@ class AuthService {
       throw new Error("Username and password required");
     }
     if (password.length < 8) {
-      throw new Error("Password must be at least 6 characters");
+      throw new Error("Password must be at least 8 characters");
     }
 
     // Check for existing user
@@ -184,7 +184,7 @@ class AuthService {
 
   verifyAccessToken(token) {
     try {
-      const decoded = jwt.verify(token, this.jwtSecret);
+      const decoded = jwt.verify(token, this.jwtSecret, { algorithms: ["HS256"] });
       return { valid: true, user: decoded };
     } catch {
       return { valid: false };
@@ -222,8 +222,8 @@ class AuthService {
   }
 
   async changePassword(userId, newPassword) {
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error("Password must be at least 6 characters");
+    if (!newPassword || newPassword.length < 8) {
+      throw new Error("Password must be at least 8 characters");
     }
     const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     this.db.run("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?", [hash, userId]);
@@ -243,7 +243,7 @@ class AuthService {
     return jwt.sign(
       { sub: user.id, username: user.username, role: user.role },
       this.jwtSecret,
-      { expiresIn: this.accessTokenTtl }
+      { algorithm: "HS256", expiresIn: this.accessTokenTtl }
     );
   }
 

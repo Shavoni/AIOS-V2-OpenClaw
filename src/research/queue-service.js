@@ -43,6 +43,11 @@ class ResearchQueueService {
     return job;
   }
 
+  _isCancelled(jobId) {
+    const job = this.manager.getJob(jobId);
+    return !job || TERMINAL_STATUSES.has(job.status);
+  }
+
   async processJob(jobId) {
     const job = this.manager.getJob(jobId);
     if (!job) return;
@@ -56,15 +61,21 @@ class ResearchQueueService {
       this.manager.setQueryDecomposition(jobId, subQuestions);
       this._emitProgress(jobId, "decomposition", 100);
 
+      if (this._isCancelled(jobId)) return;
+
       // Stage 2: Retrieval
       this._emitProgress(jobId, "retrieval", 0);
       const sources = await this.retrieval.execute(subQuestions, jobId);
       this._emitProgress(jobId, "retrieval", 100);
 
+      if (this._isCancelled(jobId)) return;
+
       // Stage 3: Scoring
       this._emitProgress(jobId, "scoring", 0);
       const scoringResult = await this.scoring.execute(sources, job.query);
       this._emitProgress(jobId, "scoring", 100);
+
+      if (this._isCancelled(jobId)) return;
 
       // Save sources to DB
       for (const source of scoringResult.scoredSources) {
@@ -96,10 +107,10 @@ class ResearchQueueService {
       const resultId = this.manager.saveResult({
         jobId,
         synthesis: synthesisResult.synthesis,
-        sources: JSON.stringify(scoringResult.scoredSources),
-        claims: JSON.stringify(scoringResult.scoredClaims),
-        evidenceSet: JSON.stringify(sources),
-        tokenUsage: JSON.stringify(synthesisResult.tokenUsage || {}),
+        sources: scoringResult.scoredSources,
+        claims: scoringResult.scoredClaims,
+        evidenceSet: sources,
+        tokenUsage: synthesisResult.tokenUsage || {},
       });
 
       this.manager.completeJob(jobId, {

@@ -50,14 +50,20 @@ class ConnectorService {
     return this.getConnector(id);
   }
 
-  getConnector(id) {
+  getConnector(id, { includeSecrets = false } = {}) {
     const stmt = this.db.prepare("SELECT * FROM connectors WHERE id = ?");
     stmt.bind([id]);
     let connector = null;
     if (stmt.step()) {
       connector = stmt.getAsObject();
       connector.config = JSON.parse(connector.config || "{}");
-      connector.auth_config = JSON.parse(connector.auth_config || "{}");
+      if (includeSecrets) {
+        connector.auth_config = JSON.parse(connector.auth_config || "{}");
+      } else {
+        connector.auth_config = this._redactAuthConfig(
+          JSON.parse(connector.auth_config || "{}")
+        );
+      }
     }
     stmt.free();
     return connector;
@@ -93,7 +99,9 @@ class ConnectorService {
     while (stmt.step()) {
       const row = stmt.getAsObject();
       row.config = JSON.parse(row.config || "{}");
-      row.auth_config = JSON.parse(row.auth_config || "{}");
+      row.auth_config = this._redactAuthConfig(
+        JSON.parse(row.auth_config || "{}")
+      );
       results.push(row);
     }
     stmt.free();
@@ -192,6 +200,22 @@ class ConnectorService {
 
   getByAgent(agentId) {
     return this.listConnectors({ agent_id: agentId });
+  }
+
+  _redactAuthConfig(authConfig) {
+    if (!authConfig || typeof authConfig !== "object") return {};
+    const SENSITIVE_KEYS = /secret|token|password|apikey|api_key|key|credential|bearer/i;
+    const redacted = {};
+    for (const [key, value] of Object.entries(authConfig)) {
+      if (typeof value === "string" && value.length > 0 && SENSITIVE_KEYS.test(key)) {
+        redacted[key] = value.length > 8
+          ? value.slice(0, 4) + "****" + value.slice(-4)
+          : "****";
+      } else {
+        redacted[key] = value;
+      }
+    }
+    return redacted;
   }
 }
 

@@ -2,9 +2,12 @@
  * Synthesis Worker — Generates structured research report from curated evidence via LLM.
  */
 
+const DEFAULT_TIMEOUT_MS = 120000;
+
 class SynthesisWorker {
-  constructor(modelRouter) {
+  constructor(modelRouter, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     this.router = modelRouter;
+    this.timeoutMs = timeoutMs;
   }
 
   async execute({ query, scoredSources, scoredClaims, jobConfidence }) {
@@ -55,13 +58,18 @@ Guidelines:
 - Be transparent about confidence levels and evidence gaps
 - If contradictions exist, present both sides fairly`;
 
-      const result = await this.router.chatCompletion({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate a comprehensive research report for: ${query}` },
-        ],
-        temperature: 0.4,
-      });
+      const result = await Promise.race([
+        this.router.chatCompletion({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Generate a comprehensive research report for: ${query}` },
+          ],
+          temperature: 0.4,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Synthesis timed out")), this.timeoutMs)
+        ),
+      ]);
 
       return {
         synthesis: result.content,

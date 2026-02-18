@@ -54,7 +54,7 @@ describe("AuthService", () => {
     test("rejects short passwords", async () => {
       await expect(
         authService.register("short_pw", "12345")
-      ).rejects.toThrow("at least 6");
+      ).rejects.toThrow("at least 8");
     });
 
     test("rejects empty username", async () => {
@@ -105,6 +105,24 @@ describe("AuthService", () => {
       expect(result.valid).toBe(false);
     });
 
+    test("rejects tokens signed with algorithm 'none'", () => {
+      const jwt = require("jsonwebtoken");
+      // Create an unsigned token (algorithm: none attack)
+      const unsignedToken = jwt.sign(
+        { sub: "hacker", username: "hacker", role: "admin" },
+        "",
+        { algorithm: "none" }
+      );
+      const result = authService.verifyAccessToken(unsignedToken);
+      expect(result.valid).toBe(false);
+    });
+
+    test("tokens are signed with HS256 algorithm", () => {
+      const jwt = require("jsonwebtoken");
+      const decoded = jwt.decode(tokens.accessToken, { complete: true });
+      expect(decoded.header.alg).toBe("HS256");
+    });
+
     test("refreshes access token", async () => {
       const result = await authService.refreshAccessToken(tokens.refreshToken);
       expect(result.accessToken).toBeTruthy();
@@ -144,6 +162,14 @@ describe("AuthService", () => {
       // Can login with new password
       const result = await authService.login("regular_user", "newpassword123");
       expect(result.user.username).toBe("regular_user");
+    });
+
+    test("changePassword enforces minimum 8 characters", async () => {
+      const users = authService.listUsers();
+      const viewer = users.find((u) => u.username === "regular_user");
+      await expect(
+        authService.changePassword(viewer.id, "short")
+      ).rejects.toThrow("at least 8");
     });
 
     test("disables user account", async () => {

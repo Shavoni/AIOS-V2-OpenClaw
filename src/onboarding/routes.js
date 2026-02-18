@@ -16,18 +16,22 @@ function createOnboardingRoutes(wizard) {
   /** POST /api/onboarding/start — Start a new onboarding wizard */
   api.post("/start", (req, res) => {
     try {
-      const { organizationName, websiteUrl, organizationType } = req.body;
-      if (!organizationName || !websiteUrl) {
-        return res.status(400).json({ error: "organizationName and websiteUrl are required" });
+      const { organizationName, websiteUrl, organizationType, manualEntry } = req.body;
+      if (!organizationName) {
+        return res.status(400).json({ error: "organizationName is required" });
       }
 
-      // Basic URL validation
-      let normalizedUrl = websiteUrl.trim();
-      if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
-        normalizedUrl = "https://" + normalizedUrl;
-      }
-      try { new URL(normalizedUrl); } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
+      let normalizedUrl = "";
+      if (websiteUrl) {
+        normalizedUrl = websiteUrl.trim();
+        if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+          normalizedUrl = "https://" + normalizedUrl;
+        }
+        try { new URL(normalizedUrl); } catch {
+          return res.status(400).json({ error: "Invalid URL format" });
+        }
+      } else if (!manualEntry) {
+        return res.status(400).json({ error: "websiteUrl is required for non-manual onboarding" });
       }
 
       const state = wizard.startWizard({ organizationName, websiteUrl: normalizedUrl, organizationType });

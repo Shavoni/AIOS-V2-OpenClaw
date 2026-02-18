@@ -49,18 +49,30 @@ describe("ConnectorService", () => {
     expect(markDirty).toHaveBeenCalled();
   });
 
-  it("getConnector returns parsed config and auth_config", () => {
+  it("getConnector returns parsed config with redacted auth_config", () => {
     const created = service.createConnector({
       name: "Test",
       type: "api",
       config: { key: "val" },
       auth_type: "bearer",
-      auth_config: { token: "abc" },
+      auth_config: { token: "sk-1234567890abcdef" },
     });
 
     const fetched = service.getConnector(created.id);
     expect(fetched.config).toEqual({ key: "val" });
-    expect(fetched.auth_config).toEqual({ token: "abc" });
+    // auth_config should be redacted by default
+    expect(fetched.auth_config.token).toBe("sk-1****cdef");
+  });
+
+  it("getConnector with includeSecrets returns full auth_config", () => {
+    const created = service.createConnector({
+      name: "SecretTest",
+      type: "api",
+      auth_config: { token: "sk-1234567890abcdef" },
+    });
+
+    const fetched = service.getConnector(created.id, { includeSecrets: true });
+    expect(fetched.auth_config.token).toBe("sk-1234567890abcdef");
   });
 
   it("listConnectors returns all connectors", () => {

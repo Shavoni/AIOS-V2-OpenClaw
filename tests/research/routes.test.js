@@ -1,13 +1,8 @@
 const express = require("express");
 const request = require("supertest");
 
-// Mock auth middleware — always passes with user
-jest.mock("../../src/middleware/auth-middleware", () => ({
-  authRequired: () => (req, _res, next) => {
-    req.user = { id: "user-1", role: "operator" };
-    next();
-  },
-}));
+// Mock express-rate-limit to pass through in tests
+jest.mock("express-rate-limit", () => () => (_req, _res, next) => next());
 
 const { createResearchRoutes } = require("../../src/research/routes");
 
@@ -30,6 +25,8 @@ describe("Research Routes", () => {
 
     app = express();
     app.use(express.json());
+    // Simulate auth middleware populating req.user (as index.js does at mount level)
+    app.use((req, _res, next) => { req.user = { id: "user-1", role: "operator" }; next(); });
     app.use("/api/research", createResearchRoutes(mockQueueService, mockManager));
   });
 
@@ -58,6 +55,42 @@ describe("Research Routes", () => {
     const res = await request(app)
       .post("/api/research/jobs")
       .send({ query: "" });
+
+    expect(res.status).toBe(400);
+  });
+
+  test("POST /jobs clamps ttl to minimum 60s", async () => {
+    await request(app)
+      .post("/api/research/jobs")
+      .send({ query: "test", ttl: 5 });
+
+    expect(mockQueueService.submitJob).toHaveBeenCalledWith(
+      expect.objectContaining({ ttl: 60 })
+    );
+  });
+
+  test("POST /jobs clamps ttl to maximum 7 days", async () => {
+    await request(app)
+      .post("/api/research/jobs")
+      .send({ query: "test", ttl: 9999999 });
+
+    expect(mockQueueService.submitJob).toHaveBeenCalledWith(
+      expect.objectContaining({ ttl: 604800 })
+    );
+  });
+
+  test("POST /jobs returns 400 for non-string ttl", async () => {
+    const res = await request(app)
+      .post("/api/research/jobs")
+      .send({ query: "test", ttl: "not-a-number" });
+
+    expect(res.status).toBe(400);
+  });
+
+  test("POST /jobs returns 400 for non-object metadata", async () => {
+    const res = await request(app)
+      .post("/api/research/jobs")
+      .send({ query: "test", metadata: "not-an-object" });
 
     expect(res.status).toBe(400);
   });

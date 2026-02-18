@@ -210,4 +210,22 @@ describe("ResearchQueueService", () => {
     const result = await service.cancelJob("job-1");
     expect(result).toBe(false);
   });
+
+  // --- Cancellation between stages ---
+  test("processJob stops if job is cancelled between stages", async () => {
+    let callCount = 0;
+    mockDecomposition.execute.mockImplementation(async () => {
+      callCount++;
+      // Simulate cancellation after decomposition
+      mockManager.getJob.mockReturnValue({ id: "job-1", status: "CANCELLED", query: "test" });
+      return ["q1"];
+    });
+
+    await service.processJob("job-1");
+
+    expect(callCount).toBe(1);
+    expect(mockRetrieval.execute).not.toHaveBeenCalled();
+    expect(mockScoring.execute).not.toHaveBeenCalled();
+    expect(mockSynthesis.execute).not.toHaveBeenCalled();
+  });
 });

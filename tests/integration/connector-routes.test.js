@@ -128,4 +128,60 @@ describe("Integration Routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThanOrEqual(1);
   });
+
+  // --- auth_config redaction tests ---
+
+  it("GET /api/integrations/:id redacts auth_config secrets", async () => {
+    const c = service.createConnector({
+      name: "Secret Connector",
+      type: "api",
+      auth_type: "bearer",
+      auth_config: { token: "super-secret-token-12345", endpoint: "https://api.example.com" },
+    });
+
+    const res = await request(app).get(`/api/integrations/${c.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.auth_config.token).not.toBe("super-secret-token-12345");
+    expect(res.body.auth_config.token).toContain("****");
+    // Non-sensitive fields are preserved
+    expect(res.body.auth_config.endpoint).toBe("https://api.example.com");
+  });
+
+  it("GET /api/integrations redacts auth_config in list responses", async () => {
+    service.createConnector({
+      name: "OAuth Connector",
+      type: "api",
+      auth_config: { client_secret: "my-client-secret-value", client_id: "abc123" },
+    });
+
+    const res = await request(app).get("/api/integrations");
+    expect(res.status).toBe(200);
+    const connector = res.body.find((c) => c.name === "OAuth Connector");
+    expect(connector.auth_config.client_secret).toContain("****");
+    expect(connector.auth_config.client_id).toBe("abc123");
+  });
+
+  it("POST /api/integrations redacts auth_config in create response", async () => {
+    const res = await request(app)
+      .post("/api/integrations")
+      .send({
+        name: "New Secret",
+        type: "api",
+        auth_config: { apiKey: "sk-1234567890abcdef" },
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.auth_config.apiKey).toContain("****");
+    expect(res.body.auth_config.apiKey).not.toBe("sk-1234567890abcdef");
+  });
+
+  it("route handlers catch errors and return 500", async () => {
+    // Force an error by closing the db
+    const brokenDb = db;
+    brokenDb.close();
+
+    const res = await request(app).get("/api/integrations");
+    expect(res.status).toBe(500);
+    expect(res.body).toHaveProperty("error");
+  });
 });

@@ -1,12 +1,13 @@
 const express = require("express");
 const { validate, schemas } = require("../middleware/validation");
+const { authLimiter } = require("../middleware/rate-limit");
 
 function createAuthRoutes(authService, authMiddleware) {
   const router = express.Router();
   const { authRequired } = authMiddleware;
 
   // POST /api/auth/register — Create a new user account
-  router.post("/register", validate(schemas.register), async (req, res) => {
+  router.post("/register", authLimiter, validate(schemas.register), async (req, res) => {
     try {
       const { username, password, email, displayName, department } = req.body;
       const user = await authService.register(username, password, {
@@ -20,7 +21,7 @@ function createAuthRoutes(authService, authMiddleware) {
   });
 
   // POST /api/auth/login — Authenticate and get tokens
-  router.post("/login", validate(schemas.login), async (req, res) => {
+  router.post("/login", authLimiter, validate(schemas.login), async (req, res) => {
     try {
       const { username, password, apiKey } = req.body;
 
@@ -45,7 +46,7 @@ function createAuthRoutes(authService, authMiddleware) {
   });
 
   // POST /api/auth/refresh — Refresh access token
-  router.post("/refresh", async (req, res) => {
+  router.post("/refresh", authLimiter, async (req, res) => {
     try {
       const { refreshToken } = req.body;
       const result = await authService.refreshAccessToken(refreshToken);

@@ -145,8 +145,9 @@ async function createApp() {
   const apiRoutes = express.Router();
   const { authOptional, authRequired } = authMiddleware;
 
-  // Auth routes (no middleware — these handle their own auth)
-  apiRoutes.use('/auth', createAuthRoutes(authService, authMiddleware));
+  // Auth routes (no auth middleware — these handle their own auth)
+  const { authLimiter } = require('./middleware/rate-limit');
+  apiRoutes.use('/auth', authLimiter, createAuthRoutes(authService, authMiddleware));
 
   // Apply authOptional to all routes — populates req.user without blocking
   // In dev mode (no users/keys configured), auto-grants admin.
@@ -244,7 +245,7 @@ async function createApp() {
     eventBus,
     maxConcurrency: parseInt(process.env.RESEARCH_MAX_CONCURRENCY, 10) || 3,
   });
-  apiRoutes.use('/research', createResearchRoutes(researchQueueService, researchManager));
+  apiRoutes.use('/research', authRequired('operator'), createResearchRoutes(researchQueueService, researchManager));
 
   console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research`);
 

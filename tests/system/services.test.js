@@ -53,6 +53,31 @@ describe("System Services", () => {
       expect(config.temperature).toBe(0.5);
       expect(config.defaultProvider).toBe("openai");
     });
+
+    test("update preserves real API keys (not masked values)", () => {
+      // Set a provider key
+      llmConfig.setProviderKey("openai", "sk-realkey1234567890abcdef");
+
+      // Now do a partial update (e.g., change temperature)
+      llmConfig.update({ temperature: 0.9 });
+
+      // Read back the raw config — key should still be the real key
+      const raw = llmConfig._getRaw();
+      expect(raw.providers.openai.apiKey).toBe("sk-realkey1234567890abcdef");
+
+      // The masked version should show stars
+      const masked = llmConfig.get();
+      expect(masked.providers.openai.apiKey).toContain("****");
+      expect(masked.providers.openai.apiKey).not.toBe("sk-realkey1234567890abcdef");
+    });
+
+    test("setProviderKey uses raw config as base", () => {
+      llmConfig.setProviderKey("anthropic", "sk-ant-secret123456");
+      const raw = llmConfig._getRaw();
+      expect(raw.providers.anthropic.apiKey).toBe("sk-ant-secret123456");
+      // The openai key from previous test should also be preserved
+      expect(raw.providers.openai.apiKey).toBe("sk-realkey1234567890abcdef");
+    });
   });
 
   describe("BrandingService", () => {

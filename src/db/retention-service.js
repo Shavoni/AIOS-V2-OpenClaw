@@ -24,9 +24,13 @@ class RetentionService {
 
   updatePolicy(policy) {
     const value = JSON.stringify(policy);
-    // Upsert into system_settings
-    const existing = this.db.exec(`SELECT key FROM system_settings WHERE key = '${SETTINGS_KEY}'`);
-    if (existing.length > 0 && existing[0].values.length > 0) {
+    // Upsert into system_settings — parameterized
+    const stmt = this.db.prepare("SELECT key FROM system_settings WHERE key = ?");
+    stmt.bind([SETTINGS_KEY]);
+    const exists = stmt.step();
+    stmt.free();
+
+    if (exists) {
       this.db.run("UPDATE system_settings SET value = ?, updated_at = ? WHERE key = ?",
         [value, new Date().toISOString(), SETTINGS_KEY]);
     } else {
@@ -45,9 +49,12 @@ class RetentionService {
       const cutoff = new Date(now);
       cutoff.setDate(cutoff.getDate() - policy.messages_days);
       const iso = cutoff.toISOString();
-      // Count rows to be deleted
-      const countResult = this.db.exec(`SELECT COUNT(*) FROM messages WHERE created_at < '${iso}'`);
-      result.messages = countResult.length > 0 ? countResult[0].values[0][0] : 0;
+      const countStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM messages WHERE created_at < ?");
+      countStmt.bind([iso]);
+      if (countStmt.step()) {
+        result.messages = countStmt.getAsObject().cnt;
+      }
+      countStmt.free();
       if (result.messages > 0) {
         this.db.run("DELETE FROM messages WHERE created_at < ?", [iso]);
       }
@@ -57,8 +64,12 @@ class RetentionService {
       const cutoff = new Date(now);
       cutoff.setDate(cutoff.getDate() - policy.audit_events_days);
       const iso = cutoff.toISOString();
-      const countResult = this.db.exec(`SELECT COUNT(*) FROM audit_events WHERE timestamp < '${iso}'`);
-      result.audit_events = countResult.length > 0 ? countResult[0].values[0][0] : 0;
+      const countStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM audit_events WHERE timestamp < ?");
+      countStmt.bind([iso]);
+      if (countStmt.step()) {
+        result.audit_events = countStmt.getAsObject().cnt;
+      }
+      countStmt.free();
       if (result.audit_events > 0) {
         this.db.run("DELETE FROM audit_events WHERE timestamp < ?", [iso]);
       }
@@ -68,8 +79,12 @@ class RetentionService {
       const cutoff = new Date(now);
       cutoff.setDate(cutoff.getDate() - policy.query_events_days);
       const iso = cutoff.toISOString();
-      const countResult = this.db.exec(`SELECT COUNT(*) FROM query_events WHERE timestamp < '${iso}'`);
-      result.query_events = countResult.length > 0 ? countResult[0].values[0][0] : 0;
+      const countStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM query_events WHERE timestamp < ?");
+      countStmt.bind([iso]);
+      if (countStmt.step()) {
+        result.query_events = countStmt.getAsObject().cnt;
+      }
+      countStmt.free();
       if (result.query_events > 0) {
         this.db.run("DELETE FROM query_events WHERE timestamp < ?", [iso]);
       }

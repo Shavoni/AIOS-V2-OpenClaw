@@ -2,23 +2,31 @@
  * Decomposition Worker — Breaks a query into targeted sub-questions via LLM.
  */
 
+const DEFAULT_TIMEOUT_MS = 60000;
+
 class DecompositionWorker {
-  constructor(modelRouter) {
+  constructor(modelRouter, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     this.router = modelRouter;
+    this.timeoutMs = timeoutMs;
   }
 
   async execute(query) {
     try {
-      const result = await this.router.chatCompletion({
-        messages: [
-          {
-            role: "system",
-            content: `You are a research query decomposer. Given a user query, break it into 3-7 targeted sub-questions that together would fully answer the original query. Return ONLY a JSON array of strings. No explanation, no markdown, just the JSON array.`,
-          },
-          { role: "user", content: query },
-        ],
-        temperature: 0.3,
-      });
+      const result = await Promise.race([
+        this.router.chatCompletion({
+          messages: [
+            {
+              role: "system",
+              content: `You are a research query decomposer. Given a user query, break it into 3-7 targeted sub-questions that together would fully answer the original query. Return ONLY a JSON array of strings. No explanation, no markdown, just the JSON array.`,
+            },
+            { role: "user", content: query },
+          ],
+          temperature: 0.3,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Decomposition timed out")), this.timeoutMs)
+        ),
+      ]);
 
       const parsed = JSON.parse(result.content);
       if (!Array.isArray(parsed)) return [query];

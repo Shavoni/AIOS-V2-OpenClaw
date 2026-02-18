@@ -2,7 +2,7 @@
  * AIOS V2 - Theme Manager
  * Handles dark/light mode switching with persistence and notifications.
  */
-class ThemeManager {
+export class ThemeManager {
   constructor() {
     this._listeners = [];
     this._theme = localStorage.getItem('aios-theme') || 'dark';

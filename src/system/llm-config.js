@@ -46,7 +46,7 @@ class LLMConfig {
   }
 
   update(config) {
-    const existing = this.get();
+    const existing = this._getRaw();
     const merged = { ...existing, ...config };
     const json = JSON.stringify(merged);
 
@@ -65,7 +65,7 @@ class LLMConfig {
   }
 
   setProviderKey(provider, apiKey) {
-    const config = this.get();
+    const config = this._getRaw();
     if (!config.providers) config.providers = {};
     if (!config.providers[provider]) config.providers[provider] = {};
     config.providers[provider].apiKey = apiKey;

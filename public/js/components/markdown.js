@@ -145,17 +145,30 @@ export function renderMarkdown(text) {
 function renderInline(text) {
   if (!text) return '';
 
-  // Bold: **text**
+  // 1. Extract links first — preserve URLs from HTML-escaping
+  const links = [];
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
+    const i = links.length;
+    // Only allow safe URL schemes
+    const safeUrl = /^(https?:\/\/|mailto:)/i.test(url) ? url : '#';
+    links.push({ text: linkText, url: safeUrl });
+    return `\x00LK${i}\x00`;
+  });
+
+  // 2. Escape HTML to prevent XSS — before applying any inline formatting
+  text = escapeHtml(text);
+
+  // 3. Bold: **text**
   text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-  // Italic: *text*
+  // 4. Italic: *text*
   text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-  // Links: [text](url)
-  text = text.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener">$1</a>'
-  );
+  // 5. Restore links with escaped text and validated URLs
+  text = text.replace(/\x00LK(\d+)\x00/g, (_, idx) => {
+    const link = links[parseInt(idx)];
+    return `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.text)}</a>`;
+  });
 
   return text;
 }
@@ -173,4 +186,9 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// Support both CommonJS (Node/Jest) and ES module environments
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { renderMarkdown };
 }
