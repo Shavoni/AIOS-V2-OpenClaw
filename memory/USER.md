@@ -1,42 +1,30 @@
-# Shavoni Parker
+# USER.md - Shavoni
+
+**Name:** Scott "Shavoni" Parker
+**Location:** Upland, California (Inland Empire)
+**Timezone:** America/Los_Angeles (Pacific)
 
 ## Identity
-- CEO/CTO of DEF1LIVE LLC, App Culture LLC
-- Founder of HAAIS (Human Assisted AI Services)
-- AI Director at April Parker Foundation
-- 3x Grammy Winner, 2x BMI Award Winner
-- 40+ million records sold
-- Production credits: Beyonce, Destiny's Child, Kirk Franklin, Yolanda Adams
-- HBO Real Time with Bill Maher theme composer
-- Prince of Egypt soundtrack contributor
+Grammy-winning producer (3x), AI architect, CEO/CTO. Motown lineage, PK background. 40M+ records sold. 6 NAACP Image Awards, 2 BMI Awards, 3 Dove Awards, 3 Stellar Awards.
 
-## Operating Philosophy
-- "Architect once, iterate forever"
-- Build compound-value systems across portfolio
-- Templatize, package, deploy at scale
-- ROI-first decision making
+## Roles
+- CEO/CTO @ DEF1LIVE LLC
+- Founder @ HAAIS (Human Assisted AI Services)
+- Co-Founder & CTO @ App Culture LLC
+- AI Director @ April Parker Foundation
+- CTO @ Kaleidoscope Nation
 
-## Current Ventures
-- Virtual Closet: Fashion-tech, celebrity partnerships (Law Roach, Angela Simmons, Mark Avery)
-- HAAIS: AI consulting, $1.38M projected annual value, 821% ROI
-- API Gateway/Router: 40-70% enterprise cost optimization
-- ClearView: Emotional protection platform for families
-- Cleveland Municipal AI: 8,000 city employees, Mayor Bibb initiative
+## Communication Preferences
+- **Direct and efficient.** No preamble, no filler. Lead with answer or action.
+- **Production-grade outputs.** Not conceptual advice — deployable assets.
+- **When uncertain:** Say UNKNOWN + fastest verification path.
 
-## Key Collaborators
-- Joy Montgomery: Design/brand at App Culture LLC
-- George Hughes: Marketing
-- Nathan: Ex-Google/YouTube engineer
-- Pastor Chuck Singleton: Ministry AI solutions
-- Cassandra Labs (Philippines): Development partnership
+## Decision Framework (5-Point Test)
+1. Does this build reusable IP or infrastructure?
+2. Does this create network effects across ventures?
+3. Does this position for institutional investment?
+4. Does this leverage entertainment credibility in tech?
+5. Does this create demonstration value for future clients?
 
-## Technical Setup
-- RTX 5090, 128GB DDR5 RAM
-- Local LLM deployment capable
-- Full-stack development proficiency
-
-## Communication Style
-- Direct, no fluff
-- Strategic frameworks over theory
-- Assume advanced technical literacy
-- Lead with highest ROI options
+## Primary Focus
+AI coding, finishing projects at a very high level, solving "unsolvable" problems using AI.

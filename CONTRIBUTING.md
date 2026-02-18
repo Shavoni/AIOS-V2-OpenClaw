@@ -1,56 +1,34 @@
 # Contributing to AIOS V2
 
-Thank you for your interest in contributing to AIOS V2.
-
 ## Getting Started
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/your-username/AIOS-V2-OpenClaw.git`
-3. Create a feature branch: `git checkout -b feature/your-feature`
-4. Install dependencies: `npm install`
-5. Copy environment config: `cp .env.example .env`
+1. Clone the repository
+2. Run `npm install`
+3. Copy `.env.example` to `.env` and configure your keys
+4. Run `npm run dev` to start in development mode
 
 ## Development Workflow
 
-1. Write tests first (TDD) — see `tests/` directory
-2. Implement your changes
-3. Run the test suite: `npm test`
-4. Ensure linting passes: `npm run lint`
-5. Commit with a clear message describing the change
-
-## Commit Messages
-
-Use clear, descriptive commit messages:
-
-```
-Add user authentication middleware
-Fix rate limiter reset after window expires
-Update agent fallback chain configuration
-```
-
-## Pull Request Process
-
-1. Update documentation if your change affects the API or configuration
-2. Ensure all tests pass
-3. Update CHANGELOG.md with your changes
-4. Submit a PR against the `master` branch
-5. Include a description of what changed and why
+- Use TDD: write tests first, then implementation
+- Run `npm test` before submitting changes
+- Run `npm run lint` to check code style
+- Keep commits focused and descriptive
 
 ## Code Standards
 
-- **Style**: Follow ESLint configuration in the project
-- **Testing**: Maintain >80% test coverage
-- **Comments**: Document public APIs with JSDoc
-- **Security**: No API keys, tokens, or secrets in code — use `.env`
+- JavaScript (ES2021+) with ESLint
+- Test coverage target: >80%
+- Document all public APIs
+- Use 127.0.0.1 instead of localhost for local services
 
-## Reporting Issues
+## Project Structure
 
-Open an issue at [GitHub Issues](https://github.com/Shavoni/AIOS-V2-OpenClaw/issues) with:
-- Description of the problem
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment details (Node version, OS, etc.)
+- `server.js` — Express API entry point
+- `src/` — Application source code
+- `tests/` — Jest test suite
+- `skills/` — OpenClaw skill modules
+- `memory/` — Agent memory and context files
 
-## License
+## Questions
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Open an issue or reach out to Shavoni directly.

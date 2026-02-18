@@ -1,14 +1,42 @@
-# Quick Directory Check
+# check-directory.ps1
+# Utility script to verify project directory structure
 
-Clear-Host
-Write-Host "=== Current Directory ===" -ForegroundColor Cyan
-Get-ChildItem | Format-Table -AutoSize
+$requiredFiles = @(
+    "package.json",
+    "server.js",
+    ".env.example",
+    ".eslintrc.json",
+    ".gitignore",
+    "README.md",
+    "SOUL.md",
+    "IDENTITY.md",
+    "USER.md"
+)
 
-Write-Host "`n=== Searching for JS files ===" -ForegroundColor Cyan
-Get-ChildItem -Recurse -Filter "*.js" | Select-Object FullName
+$requiredDirs = @(
+    "src",
+    "tests",
+    "skills",
+    "memory",
+    ".openclaw"
+)
 
-Write-Host "`n=== Searching for model files ===" -ForegroundColor Cyan
-Get-ChildItem -Recurse -Filter "*model*" | Select-Object FullName
+Write-Host "Checking AIOS V2 project structure..." -ForegroundColor Cyan
 
-Write-Host "`n=== Searching for database related files ===" -ForegroundColor Cyan
-Get-ChildItem -Recurse -Include "*.js", "*.json" | Where-Object {$_.Name -match "(db|sql|postgres|sequelize)" -or $_.DirectoryName -like "*app*"} | Select-Object FullName
+foreach ($file in $requiredFiles) {
+    if (Test-Path $file) {
+        Write-Host "  [OK] $file" -ForegroundColor Green
+    } else {
+        Write-Host "  [MISSING] $file" -ForegroundColor Red
+    }
+}
+
+foreach ($dir in $requiredDirs) {
+    if (Test-Path $dir -PathType Container) {
+        Write-Host "  [OK] $dir/" -ForegroundColor Green
+    } else {
+        Write-Host "  [MISSING] $dir/" -ForegroundColor Red
+    }
+}
+
+Write-Host "`nDone." -ForegroundColor Cyan

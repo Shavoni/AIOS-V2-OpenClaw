@@ -1,16 +1,21 @@
-# BOOTSTRAP.md - Initialized
+# BOOTSTRAP.md
 
-Setup complete. Onboarding finished 2026-02-15.
+## First-Time Setup
 
-## Quick Context
-- Owner: Shavoni (Scott "Shavoni" Parker)
-- See USER.md for full profile, ventures, and decision framework
-- See SOUL.md for operating rules and hard boundaries
-- See IDENTITY.md for agent identity
-- Memory indexed and available for conversation context
+1. Install Node.js 18+ and npm
+2. Clone or download this repository
+3. Run `npm install` to install dependencies
+4. Copy `.env.example` to `.env` and fill in your API keys
+5. Run `npm start` to launch the server
 
-## On New Conversations
-1. Read IDENTITY.md, SOUL.md, USER.md
-2. Check memory for relevant prior context
-3. Apply the rules — especially the social media hard rule
-4. Execute. Don't philosophize.
+## OpenClaw Setup
+
+The `.openclaw/workspace-state.json` tracks the workspace bootstrap timestamp. This file is managed automatically by the OpenClaw framework.
+
+## Agent Configuration
+
+- `SOUL.md` — Agent identity and behavior rules
+- `IDENTITY.md` — Agent metadata
+- `USER.md` — Owner profile and preferences
+- `MEMORY.md` — Agent memory context
+- `TOOLS.md` — Environment-specific tool notes

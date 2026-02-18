@@ -1,143 +1,39 @@
 ---
 name: slack
-description: Use when you need to control Slack from Clawdbot via the slack tool, including reacting to messages or pinning/unpinning items in Slack channels or DMs.
+description: Send messages, manage channels, and interact with Slack workspaces. Use for team communication, notifications, and workflow alerts.
+metadata: {"openclaw":{"emoji":"💬"}}
 ---
 
-# Slack Actions
+# Slack
 
-## Overview
+Send messages and manage Slack workspace interactions.
 
-Use `slack` to react, manage pins, send/edit/delete messages, and fetch member info. The tool uses the bot token configured for Clawdbot.
+## Authentication
 
-## Inputs to collect
+Requires a Slack Bot Token (`xoxb-...`) with appropriate scopes:
+- `chat:write` — Send messages
+- `channels:read` — List channels
+- `channels:history` — Read channel history
+- `users:read` — Look up users
 
-- `channelId` and `messageId` (Slack message timestamp, e.g. `1712023032.1234`).
-- For reactions, an `emoji` (Unicode or `:name:`).
-- For message sends, a `to` target (`channel:<id>` or `user:<id>`) and `content`.
+## Sending Messages
 
-Message context lines include `slack message id` and `channel` fields you can reuse directly.
-
-## Actions
-
-### Action groups
-
-| Action group | Default | Notes |
-| --- | --- | --- |
-| reactions | enabled | React + list reactions |
-| messages | enabled | Read/send/edit/delete |
-| pins | enabled | Pin/unpin/list |
-| memberInfo | enabled | Member info |
-| emojiList | enabled | Custom emoji list |
-
-### React to a message
-
-```json
-{
-  "action": "react",
-  "channelId": "C123",
-  "messageId": "1712023032.1234",
-  "emoji": "✅"
-}
+```bash
+curl.exe -X POST https://slack.com/api/chat.postMessage \
+  -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"channel": "C0XXXXXX", "text": "Hello from Scotty-5!"}'
 ```
 
-### List reactions
+## Common Operations
 
-```json
-{
-  "action": "reactions",
-  "channelId": "C123",
-  "messageId": "1712023032.1234"
-}
-```
+- **Post to channel**: Send notifications, alerts, reports
+- **DM a user**: Direct messages for private notifications
+- **List channels**: Find the right channel for a message
+- **Read history**: Check recent messages in a channel
 
-### Send a message
+## Notes
 
-```json
-{
-  "action": "sendMessage",
-  "to": "channel:C123",
-  "content": "Hello from Clawdbot"
-}
-```
-
-### Edit a message
-
-```json
-{
-  "action": "editMessage",
-  "channelId": "C123",
-  "messageId": "1712023032.1234",
-  "content": "Updated text"
-}
-```
-
-### Delete a message
-
-```json
-{
-  "action": "deleteMessage",
-  "channelId": "C123",
-  "messageId": "1712023032.1234"
-}
-```
-
-### Read recent messages
-
-```json
-{
-  "action": "readMessages",
-  "channelId": "C123",
-  "limit": 20
-}
-```
-
-### Pin a message
-
-```json
-{
-  "action": "pinMessage",
-  "channelId": "C123",
-  "messageId": "1712023032.1234"
-}
-```
-
-### Unpin a message
-
-```json
-{
-  "action": "unpinMessage",
-  "channelId": "C123",
-  "messageId": "1712023032.1234"
-}
-```
-
-### List pinned items
-
-```json
-{
-  "action": "listPins",
-  "channelId": "C123"
-}
-```
-
-### Member info
-
-```json
-{
-  "action": "memberInfo",
-  "userId": "U123"
-}
-```
-
-### Emoji list
-
-```json
-{
-  "action": "emojiList"
-}
-```
-
-## Ideas to try
-
-- React with ✅ to mark completed tasks.
-- Pin key decisions or weekly status updates.
+- Always use `curl.exe` on Windows (not `curl`)
+- Rate limits apply: ~1 message per second per channel
+- Bot must be invited to a channel before posting

@@ -1,199 +1,107 @@
 ---
 name: tailscale
-version: 1.0.0
-description: Manage Tailscale tailnet via CLI and API. Use when the user asks to "check tailscale status", "list tailscale devices", "ping a device", "send file via tailscale", "tailscale funnel", "create auth key", "check who's online", or mentions Tailscale network management.
+description: Manage Tailscale VPN network — connect devices, configure exit nodes, manage ACLs, and monitor network status.
+metadata: {"openclaw":{"emoji":"🔗"}}
 ---
 
-# Tailscale Skill
+# Tailscale
 
-Hybrid skill using CLI for local operations and API for tailnet-wide management.
+Manage your Tailscale VPN network for secure device connectivity.
 
-## Setup
-
-API config (optional, for tailnet-wide operations): `~/.clawdbot/credentials/tailscale/config.json`
-
-```json
-{
-  "apiKey": "tskey-api-k...",
-  "tailnet": "-"
-}
-```
-
-Get your API key from: Tailscale Admin Console → Settings → Keys → Generate API Key
-
-The `tailnet` can be `-` (auto-detect), your org name, or email domain.
-
----
-
-## Local Operations (CLI)
-
-These work on the current machine only.
-
-### Status & Diagnostics
+## Authentication
 
 ```bash
-# Current status (peers, connection state)
+# Login (opens browser)
+tailscale up
+
+# Login with auth key (headless)
+tailscale up --authkey=tskey-auth-XXXX
+
+# Check login status
 tailscale status
-tailscale status --json | jq '.Peer | to_entries[] | {name: .value.HostName, ip: .value.TailscaleIPs[0], online: .value.Online}'
 
-# Network diagnostics (NAT type, DERP, UDP)
-tailscale netcheck
-tailscale netcheck --format=json
+# Logout
+tailscale logout
+```
 
-# Get this machine's Tailscale IP
+## Network Status
+
+```bash
+# Show all devices and their status
+tailscale status
+
+# Show current device IP
+tailscale ip
+
+# Show IPv4 only
 tailscale ip -4
 
-# Identify a Tailscale IP
-tailscale whois 100.x.x.x
+# Show IPv6 only
+tailscale ip -6
+
+# Ping a device
+tailscale ping <device-name-or-ip>
 ```
 
-### Connectivity
+## Exit Nodes
 
 ```bash
-# Ping a peer (shows direct vs relay)
-tailscale ping <hostname-or-ip>
+# Use a device as exit node
+tailscale up --exit-node=<device-name-or-ip>
 
-# Connect/disconnect
+# Stop using exit node
+tailscale up --exit-node=
+
+# Advertise this device as exit node
+tailscale up --advertise-exit-node
+```
+
+## File Transfer
+
+```bash
+# Send file to a device
+tailscale file cp <file> <device-name>:
+
+# Receive files (check default receive directory)
+tailscale file get <output-directory>
+```
+
+## DNS
+
+```bash
+# Check DNS status
+tailscale dns status
+
+# Use MagicDNS (enabled by default)
+# Access devices by name: device-name.tailnet-name.ts.net
+```
+
+## Common Workflows
+
+### Connect Two Machines
+
+```bash
+# On both machines:
 tailscale up
-tailscale down
 
-# Use an exit node
-tailscale up --exit-node=<node-name>
-tailscale exit-node list
-tailscale exit-node suggest
+# Check connectivity:
+tailscale ping <other-device>
+
+# SSH to other device (if SSH is enabled):
+ssh user@<device-name>
 ```
 
-### File Transfer (Taildrop)
+### Share a Device
 
 ```bash
-# Send files to a device
-tailscale file cp myfile.txt <device-name>:
-
-# Receive files (moves from inbox to directory)
-tailscale file get ~/Downloads
-tailscale file get --wait ~/Downloads  # blocks until file arrives
+# Share with another user
+tailscale share <device> <user@email>
 ```
 
-### Expose Services
+## Notes
 
-```bash
-# Share locally within tailnet (private)
-tailscale serve 3000
-tailscale serve https://localhost:8080
-
-# Share publicly to internet
-tailscale funnel 8080
-
-# Check what's being served
-tailscale serve status
-tailscale funnel status
-```
-
-### SSH
-
-```bash
-# SSH via Tailscale (uses MagicDNS)
-tailscale ssh user@hostname
-
-# Enable SSH server on this machine
-tailscale up --ssh
-```
-
----
-
-## Tailnet-Wide Operations (API)
-
-These manage your entire tailnet. Requires API key.
-
-### List All Devices
-
-```bash
-./scripts/ts-api.sh devices
-
-# With details
-./scripts/ts-api.sh devices --verbose
-```
-
-### Device Details
-
-```bash
-./scripts/ts-api.sh device <device-id-or-name>
-```
-
-### Check Online Status
-
-```bash
-# Quick online check for all devices
-./scripts/ts-api.sh online
-```
-
-### Authorize/Delete Device
-
-```bash
-./scripts/ts-api.sh authorize <device-id>
-./scripts/ts-api.sh delete <device-id>
-```
-
-### Device Tags & Routes
-
-```bash
-./scripts/ts-api.sh tags <device-id> tag:server,tag:prod
-./scripts/ts-api.sh routes <device-id>
-```
-
-### Auth Keys
-
-```bash
-# Create a reusable auth key
-./scripts/ts-api.sh create-key --reusable --tags tag:server
-
-# Create ephemeral key (device auto-removes when offline)
-./scripts/ts-api.sh create-key --ephemeral
-
-# List keys
-./scripts/ts-api.sh keys
-```
-
-### DNS Management
-
-```bash
-./scripts/ts-api.sh dns                 # Show DNS config
-./scripts/ts-api.sh dns-nameservers     # List nameservers
-./scripts/ts-api.sh magic-dns on|off    # Toggle MagicDNS
-```
-
-### ACLs
-
-```bash
-./scripts/ts-api.sh acl                 # Get current ACL
-./scripts/ts-api.sh acl-validate <file> # Validate ACL file
-```
-
----
-
-## Common Use Cases
-
-**"Who's online right now?"**
-```bash
-./scripts/ts-api.sh online
-```
-
-**"Send this file to my phone"**
-```bash
-tailscale file cp document.pdf my-phone:
-```
-
-**"Expose my dev server publicly"**
-```bash
-tailscale funnel 3000
-```
-
-**"Create a key for a new server"**
-```bash
-./scripts/ts-api.sh create-key --reusable --tags tag:server --expiry 7d
-```
-
-**"Is the connection direct or relayed?"**
-```bash
-tailscale ping my-server
-```
+- Always use `tailscale` CLI (not API) for local operations
+- Tailscale runs as a system service on Windows
+- MagicDNS allows accessing devices by hostname
+- ACL changes require admin access to the Tailscale admin console
+- Use `127.0.0.1` not `localhost` for local service access

@@ -1,17 +1,17 @@
 ---
 name: deepwiki
-description: Query the DeepWiki MCP server for GitHub repository documentation, wiki structure, and AI-powered questions.
-homepage: https://docs.devin.ai/work-with-devin/deepwiki-mcp
+description: Query and analyze GitHub repository documentation via DeepWiki's research API. Ask questions, browse wiki structure, and read specific documentation pages.
+metadata: {"openclaw":{"emoji":"📚"}}
 ---
 
 # DeepWiki
 
-Use this skill to access documentation for public GitHub repositories via the DeepWiki MCP server. You can search repository wikis, get structure, and ask complex questions grounded in the repository's documentation.
+Query GitHub repository documentation using DeepWiki's MCP-based research API.
 
 ## Commands
 
-### Ask Question
-Ask any question about a GitHub repository and get an AI-powered, context-grounded response.
+### Ask a Question
+Ask a question about a GitHub repository and get an AI-powered, context-grounded response.
 ```bash
 node ./scripts/deepwiki.js ask <owner/repo> "your question"
 ```

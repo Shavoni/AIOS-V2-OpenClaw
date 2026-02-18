@@ -1,45 +1,49 @@
-# Product Requirements Document (PRD) for AIOS V2
+# AIOS V2 — Product Requirements Document
 
-## Overview
-AIOS V2 aims to be a comprehensive autonomous intelligent operating system capable of efficient inter-agent communication, real-time data management, and adaptable integration with novel technologies such as OpenClaw and Claude Code.
+## Vision
+Build an AI-powered autonomous operating system that serves as a strategic agent execution platform, integrating modular AI skills and enterprise automation capabilities.
 
-## Goals
-- Enhance inter-agent communication to facilitate seamless data sharing and task execution.
-- Integrate OpenClaw's advanced features to bolster real-time monitoring and security frameworks.
-- Utilize Claude Code for complex coding and development needs, ensuring robust performance and scalability.
+## Target Users
+- Enterprise teams needing AI agent orchestration
+- Developers building AI-powered automation workflows
+- Organizations requiring intelligent model routing across providers
 
-## Feature Requirements
-1. **Inter-Agent Communication**
-   - Real-time messaging and data synchronization between agents.
-   - Automated task delegation and execution across different agents.
-2. **Security and Compliance**
-   - Implement robust RBAC and encryption protocols.
-   - Ensure all integrations meet compliance standards.
-3. **User Interface/Experience**
-   - Intuitive dashboard and controls for ease of use.
-   - Real-time analytics and performance tracking.
-4. **Performance Metrics**
-   - Monitor CPU/GPU load, latency, and throughput.
-   - Utilize predictive analytics to optimize system performance.
+## Core Requirements
 
-## Technical Specifications
-- The system should support integration with OpenClaw for monitoring and adaptive security.
-- Claude Code should be integrated to handle large-scale development tasks efficiently.
-- Ensure scalability for enterprise deployment, both on-premise and in cloud environments.
+### 1. Agent Framework
+- Persistent agent identity (memory, personality, behavior rules)
+- Multi-channel support (Telegram, WhatsApp, Dashboard)
+- Model routing across OpenAI, Anthropic, Gemini, Kimi, and local LLMs
 
-## Milestones and Timeline
-1. **Initial Development and Integration** - Week 1-4
-   - Set up development environment and integrate Claude Code.
-2. **Feature Development** - Week 5-10
-   - Implement and test critical features like communication and security.
-3. **System Testing and Optimization** - Week 11-14
-   - Conduct thorough testing, performance metrics, and make necessary optimizations.
-4. **Deployment Planning** - Week 15-18
-   - Finalize deployment strategy and ensure readiness for production.
+### 2. Skill System
+- Modular, pluggable skill architecture
+- Skills for: DevOps, cloud storage, business automation, research, messaging
+- Easy skill installation and configuration
 
-## Stakeholders
-- **Product Owner**: Shavoni
-- **Development Team**: Responsible for coding, testing, and integration
-- **Deployment Team**: Handles final deployment preparation and execution
+### 3. Memory & Context
+- Long-term memory with embedding-based search
+- Session continuity across conversations
+- Context files (SOUL.md, USER.md, IDENTITY.md) for agent behavior
 
-This document serves as the guiding light for the product's vision, ensuring clarity, consistency, and alignment across all teams involved in AIOS V2 development.
+### 4. Enterprise Features
+- Role-Based Access Control (RBAC)
+- Configurable access controls matching enterprise data policies
+- On-prem and cloud deployment options
+- Performance dashboards and monitoring
+
+### 5. Security
+- Autonomous endpoint protection
+- Real-time AI workload monitoring
+- CISA guidance compliance
+- Hard rules: no external posting without approval
+
+## Success Metrics
+- Agent response accuracy and relevance
+- Task completion rate
+- Model routing cost savings (target: 40-70%)
+- User engagement and feedback scores
+- System uptime >99.5%
+
+## MVP Scope (TBD)
+- Key decisions pending: tech stack selection, target enterprise segment, MVP feature prioritization
+- See [memory/AIOS-V2.md](memory/AIOS-V2.md) for completed research

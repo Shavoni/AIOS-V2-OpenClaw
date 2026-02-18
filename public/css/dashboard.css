@@ -1,0 +1,210 @@
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 24px 32px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+
+.card:hover {
+  border-color: var(--accent-dim);
+}
+
+.card h3 {
+  padding: 16px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-body {
+  padding: 20px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Provider status */
+.provider-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(42, 42, 68, 0.5);
+}
+
+.provider-item:last-child {
+  border-bottom: none;
+}
+
+.provider-name {
+  font-weight: 500;
+}
+
+.provider-status {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.provider-status.healthy {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.provider-status.unhealthy {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
+/* Skills Grid */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 24px 32px;
+}
+
+.skill-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color var(--transition);
+}
+
+.skill-card:hover {
+  border-color: var(--accent-dim);
+}
+
+.skill-card h4 {
+  font-size: 1rem;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.skill-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.skill-card .caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-cap {
+  font-size: 0.7rem;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Memory Layout */
+.memory-layout {
+  display: flex;
+  height: calc(100% - 73px);
+}
+
+.memory-sessions {
+  width: 300px;
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.memory-sessions h3,
+.memory-content h3 {
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+}
+
+.memory-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.memory-file-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.memory-file-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Settings */
+.settings-layout {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.settings-section h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.settings-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.settings-section li {
+  padding: 8px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(42, 42, 68, 0.5);
+}
+
+.settings-section li:last-child {
+  border-bottom: none;
+}
+
+.profile-card {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+
+.profile-card .profile-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-card .profile-model {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

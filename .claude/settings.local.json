@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command:*)",
+      "Bash(python3:*)",
+      "Bash(git init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx jest:*)",
+      "Bash(npm start)",
+      "Bash(start http://127.0.0.1:3000)",
+      "Bash(npx kill-port 3000)",
+      "Bash(taskkill:*)",
+      "Bash(fuser:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
+    ]
+  }
+}

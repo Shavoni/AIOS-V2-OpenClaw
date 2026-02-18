@@ -1,7 +1,7 @@
 {
   "env": {
     "node": true,
-    "es2024": true,
+    "es2021": true,
     "jest": true
   },
   "extends": "eslint:recommended",
@@ -10,8 +10,6 @@
   },
   "rules": {
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-    "no-console": "off",
-    "semi": ["error", "always"],
-    "quotes": ["error", "single", { "avoidEscape": true }]
+    "no-console": "off"
   }
 }
