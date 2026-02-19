@@ -85,6 +85,12 @@ const schemas = {
     filename: { required: true, type: "string", minLength: 1, maxLength: 200 },
     content: { required: true, type: "string" },
   },
+  createSkill: {
+    id: { required: true, type: "string", minLength: 1, maxLength: 100 },
+    name: { required: true, type: "string", minLength: 1, maxLength: 200 },
+    description: { type: "string", maxLength: 5000 },
+    version: { type: "string", maxLength: 50 },
+  },
   executeSkill: {
     command: { required: true, type: "string", minLength: 1 },
   },

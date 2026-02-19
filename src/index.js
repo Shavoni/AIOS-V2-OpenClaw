@@ -5,6 +5,7 @@ const { initSchema } = require('./db/schema');
 const { ModelRouter } = require('./router');
 const { AgentManager } = require('./agent');
 const { SkillEngine } = require('./skills');
+const { createSkillRoutes } = require('./skills/routes');
 const { MemoryManager } = require('./memory');
 const { IntentClassifier, RiskDetector, GovernanceEngine } = require('./governance');
 const { MessageHandler, createChatRoutes, setupSocket } = require('./chat');
@@ -176,6 +177,9 @@ async function createApp() {
   // MANUS ingest service + session ingest
   const manusIngest = new ManusIngestService({ agentManager: agentManagerService, rag, documentParser });
   const manusSessionIngest = new ManusSessionIngest({ agentManager: agentManagerService, rag, documentParser });
+
+  // Skills management — operator access required
+  apiRoutes.use('/skills', authRequired('operator'), createSkillRoutes(skills, config));
 
   // Agent management — operator access required
   apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler, manusIngest }));

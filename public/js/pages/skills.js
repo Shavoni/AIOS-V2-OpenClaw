@@ -7,6 +7,7 @@
 
 import { renderMarkdown } from '../components/markdown.js';
 import { showToast } from '../components/toast.js';
+import { showModal, hideModal } from '../components/modal.js';
 import { escapeHtml, $ } from '../utils.js';
 
 /* ── Category color map ─────────────────────────────────────────────────── */
@@ -90,11 +91,19 @@ export class SkillsPage {
               Skills &amp; Capabilities
             </h1>
             <p class="page-subtitle">Installed skill modules, automation tools, and extensible capabilities</p>
-            <div class="page-header-actions">
+            <div class="page-header-actions" style="display:flex;gap:var(--space-2);align-items:center">
               <span class="badge" id="skills-count-badge"
                     style="background:rgba(255,255,255,0.2);color:#fff;font-size:var(--font-size-sm);padding:0.3rem 0.8rem">
                 0 skills
               </span>
+              <button class="btn btn-sm" id="upload-skill-btn"
+                      style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25)">
+                Upload Skill
+              </button>
+              <button class="btn btn-sm" id="create-skill-btn"
+                      style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.3)">
+                + New Skill
+              </button>
             </div>
           </div>
         </div>
@@ -174,6 +183,14 @@ export class SkillsPage {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => this._closeDetail());
     }
+
+    // Create skill button
+    const createBtn = $('#create-skill-btn', mount);
+    if (createBtn) createBtn.addEventListener('click', () => this._showSkillForm(null, 'Create New Skill'));
+
+    // Upload skill button
+    const uploadBtn = $('#upload-skill-btn', mount);
+    if (uploadBtn) uploadBtn.addEventListener('click', () => this._showUploadDialog());
   }
 
   /* ── Fetch Skills ────────────────────────────────────────────────────── */
@@ -420,6 +437,14 @@ export class SkillsPage {
 
     let html = '';
 
+    // --- Action buttons row ---
+    html += `
+      <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+        <button class="btn btn-sm btn-primary" id="skill-edit-btn">Edit Skill</button>
+        <button class="btn btn-sm btn-ghost" id="skill-delete-btn" style="color:var(--accent-red)">Delete</button>
+      </div>
+    `;
+
     // --- Metadata badges row ---
     html += `
       <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-5)">
@@ -527,6 +552,12 @@ export class SkillsPage {
 
     bodyEl.innerHTML = html;
 
+    // --- Bind edit/delete buttons ---
+    const editBtn = bodyEl.querySelector('#skill-edit-btn');
+    if (editBtn) editBtn.addEventListener('click', () => this._showSkillForm(detail, `Edit: ${detail.name || id}`));
+    const deleteBtn = bodyEl.querySelector('#skill-delete-btn');
+    if (deleteBtn) deleteBtn.addEventListener('click', () => this._deleteSkill(id));
+
     // --- Bind execute button ---
     const runBtn = $('#skill-exec-run');
     if (runBtn) {
@@ -610,6 +641,169 @@ export class SkillsPage {
     const panel = document.getElementById('skill-detail-panel');
     if (panel) panel.style.display = 'none';
     this._expandedSkill = null;
+  }
+
+  /* ── Create / Edit Skill Dialog ──────────────────────────────────────── */
+
+  _showSkillForm(skill, title) {
+    const isEdit = !!skill;
+    const id = skill?.id || '';
+    const name = skill?.name || '';
+    const description = skill?.description || '';
+    const version = skill?.version || '1.0.0';
+    const tags = (skill?.tags || []).join(', ');
+
+    // Extract body from readme (strip frontmatter)
+    let body = '';
+    if (skill?.readme) {
+      const fmMatch = skill.readme.match(/^---[\s\S]*?---\s*\n?([\s\S]*)$/);
+      body = fmMatch ? fmMatch[1].trim() : skill.readme;
+    }
+
+    const formBody = `
+      <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+        <div style="display:flex;gap:var(--space-3)">
+          <div style="flex:1">
+            <label class="input-label">Skill ID</label>
+            <input type="text" class="input" id="skill-form-id" value="${escapeHtml(id)}"
+                   placeholder="my-skill-name" ${isEdit ? 'disabled style="opacity:0.6"' : ''} />
+            <small style="color:var(--text-muted)">Alphanumeric, hyphens, underscores only</small>
+          </div>
+          <div style="flex:1">
+            <label class="input-label">Version</label>
+            <input type="text" class="input" id="skill-form-version" value="${escapeHtml(version)}" placeholder="1.0.0" />
+          </div>
+        </div>
+        <div>
+          <label class="input-label">Name</label>
+          <input type="text" class="input" id="skill-form-name" value="${escapeHtml(name)}" placeholder="My Skill" />
+        </div>
+        <div>
+          <label class="input-label">Description</label>
+          <input type="text" class="input" id="skill-form-desc" value="${escapeHtml(description)}" placeholder="What this skill does..." />
+        </div>
+        <div>
+          <label class="input-label">Tags (comma-separated)</label>
+          <input type="text" class="input" id="skill-form-tags" value="${escapeHtml(tags)}" placeholder="devops, automation, deploy" />
+        </div>
+        <div>
+          <label class="input-label">Content (SKILL.md body)</label>
+          <textarea class="input" id="skill-form-body" rows="10"
+                    style="font-family:var(--font-mono);font-size:var(--font-size-sm);resize:vertical"
+                    placeholder="# My Skill\n\nDescribe your skill here...">${escapeHtml(body)}</textarea>
+        </div>
+      </div>
+    `;
+
+    showModal({
+      title,
+      body: formBody,
+      actions: [
+        {
+          label: isEdit ? 'Save Changes' : 'Create Skill',
+          class: 'btn btn-primary',
+          onClick: async () => {
+            const data = {
+              name: document.getElementById('skill-form-name')?.value.trim(),
+              description: document.getElementById('skill-form-desc')?.value.trim(),
+              version: document.getElementById('skill-form-version')?.value.trim() || '1.0.0',
+              tags: (document.getElementById('skill-form-tags')?.value || '').split(',').map(t => t.trim()).filter(Boolean),
+              body: document.getElementById('skill-form-body')?.value || '',
+            };
+
+            if (!data.name) { showToast('Name is required', 'error'); return; }
+
+            try {
+              if (isEdit) {
+                await this.api.updateSkill(id, data);
+                showToast('Skill updated', 'success');
+              } else {
+                data.id = document.getElementById('skill-form-id')?.value.trim();
+                if (!data.id) { showToast('Skill ID is required', 'error'); return; }
+                await this.api.createSkill(data);
+                showToast('Skill created', 'success');
+              }
+              hideModal();
+              this._closeDetail();
+            } catch (err) {
+              showToast(`Failed: ${err.message}`, 'error');
+            }
+          },
+        },
+        { label: 'Cancel', class: 'btn btn-ghost', onClick: hideModal },
+      ],
+    });
+  }
+
+  /* ── Upload Skill Dialog ───────────────────────────────────────────── */
+
+  _showUploadDialog() {
+    const formBody = `
+      <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+        <div>
+          <label class="input-label">Skill ID</label>
+          <input type="text" class="input" id="upload-skill-id" placeholder="my-uploaded-skill" />
+          <small style="color:var(--text-muted)">Unique identifier for this skill</small>
+        </div>
+        <div>
+          <label class="input-label">SKILL.md File</label>
+          <input type="file" id="upload-skill-file" accept=".md" class="input" />
+        </div>
+        <div id="upload-skill-result" style="display:none;padding:var(--space-3);border-radius:var(--radius-md);background:var(--bg-surface)"></div>
+      </div>
+    `;
+
+    showModal({
+      title: 'Upload Skill',
+      body: formBody,
+      actions: [
+        {
+          label: 'Upload',
+          class: 'btn btn-primary',
+          onClick: async () => {
+            const skillId = document.getElementById('upload-skill-id')?.value.trim();
+            const fileInput = document.getElementById('upload-skill-file');
+            const resultEl = document.getElementById('upload-skill-result');
+
+            if (!skillId) { showToast('Skill ID is required', 'error'); return; }
+            if (!fileInput?.files?.length) { showToast('Select a SKILL.md file', 'error'); return; }
+
+            const file = fileInput.files[0];
+            const content = await file.text();
+
+            try {
+              await this.api.uploadSkill(skillId, content, 'md');
+              showToast('Skill uploaded successfully', 'success');
+              if (resultEl) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = `<span style="color:var(--accent-green)">Skill "${escapeHtml(skillId)}" uploaded and registered.</span>`;
+              }
+              hideModal();
+            } catch (err) {
+              showToast(`Upload failed: ${err.message}`, 'error');
+              if (resultEl) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = `<span style="color:var(--accent-red)">Error: ${escapeHtml(err.message)}</span>`;
+              }
+            }
+          },
+        },
+        { label: 'Cancel', class: 'btn btn-ghost', onClick: hideModal },
+      ],
+    });
+  }
+
+  /* ── Delete Skill ──────────────────────────────────────────────────── */
+
+  async _deleteSkill(id) {
+    if (!confirm(`Delete skill "${id}"? This cannot be undone.`)) return;
+    try {
+      await this.api.deleteSkill(id);
+      showToast('Skill deleted', 'success');
+      this._closeDetail();
+    } catch (err) {
+      showToast(`Failed: ${err.message}`, 'error');
+    }
   }
 
   /* ── Cleanup ─────────────────────────────────────────────────────────── */

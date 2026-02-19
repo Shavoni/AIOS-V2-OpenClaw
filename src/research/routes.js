@@ -16,8 +16,8 @@ const researchJobSchema = {
 const jobSubmitLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  keyGenerator: (req) => req.user?.id || req.ip,
   message: { error: "Too many research jobs submitted. Try again later." },
+  validate: { xForwardedForHeader: false, trustProxy: false },
 });
 
 function createResearchRoutes(queueService, manager) {

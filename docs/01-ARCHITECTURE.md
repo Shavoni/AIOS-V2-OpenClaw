@@ -2,7 +2,7 @@
 
 ## System Overview
 
-AIOS V2 is a modular Node.js platform built on Express with SQLite (sql.js) persistence. Every component is injected via constructor — no global singletons except the EventBus.
+AIOS V3 is a modular Node.js platform built on Express with SQLite (sql.js) persistence. Every component is injected via constructor — no global singletons except the EventBus.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

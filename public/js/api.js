@@ -210,6 +210,30 @@ export class API {
     return this._post(`/api/skills/${encodeURIComponent(id)}/execute`, { command, args });
   }
 
+  async createSkill(data) {
+    const result = await this._post('/api/skills', data);
+    await this.fetchSkills();
+    return result;
+  }
+
+  async updateSkill(id, data) {
+    const result = await this._put(`/api/skills/${encodeURIComponent(id)}`, data);
+    await this.fetchSkills();
+    return result;
+  }
+
+  async deleteSkill(id) {
+    const result = await this._delete(`/api/skills/${encodeURIComponent(id)}`);
+    await this.fetchSkills();
+    return result;
+  }
+
+  async uploadSkill(id, content, fileType) {
+    const result = await this._post(`/api/skills/${encodeURIComponent(id)}/upload`, { content, fileType });
+    await this.fetchSkills();
+    return result;
+  }
+
   // ─── Memory ──────────────────────────────────────────────
 
   async fetchMemoryFiles() {
