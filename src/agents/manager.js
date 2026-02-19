@@ -29,8 +29,8 @@ class AgentManagerService {
     const id = config.id || uuidv4();
     const now = new Date().toISOString();
     this.db.run(
-      `INSERT INTO agents (id, name, title, domain, description, system_prompt, capabilities, guardrails, status, is_router, escalates_to, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO agents (id, name, title, domain, description, system_prompt, capabilities, guardrails, status, is_router, escalates_to, logo_url, brand_color, brand_tagline, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         config.name || "Unnamed Agent",
@@ -43,6 +43,9 @@ class AgentManagerService {
         config.status || "pending",
         config.is_router ? 1 : 0,
         config.escalates_to || null,
+        config.logo_url || "",
+        config.brand_color || "",
+        config.brand_tagline || "",
         now,
         now,
       ]
@@ -60,6 +63,7 @@ class AgentManagerService {
       "name", "title", "domain", "description", "system_prompt",
       "capabilities", "guardrails", "status", "is_router", "escalates_to",
       "approved_by", "approved_at", "rejection_reason",
+      "logo_url", "brand_color", "brand_tagline",
     ]);
 
     const fields = [];

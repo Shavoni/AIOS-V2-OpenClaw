@@ -57,6 +57,9 @@ const SCHEMA = [
   approved_by TEXT,
   approved_at TEXT,
   rejection_reason TEXT,
+  logo_url TEXT DEFAULT '',
+  brand_color TEXT DEFAULT '',
+  brand_tagline TEXT DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 )`,
