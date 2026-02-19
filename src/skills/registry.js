@@ -36,6 +36,10 @@ class SkillRegistry {
   getSkillCount() {
     return this._skills.size;
   }
+
+  unregister(id) {
+    return this._skills.delete(id);
+  }
 }
 
 module.exports = { SkillRegistry };

@@ -42,4 +42,12 @@ describe("SkillRegistry", () => {
     expect(summary).toContain("**A**");
     expect(summary).toContain("Does A");
   });
+
+  test("unregister removes a skill", () => {
+    registry.register({ id: "removeme", name: "Remove", description: "", tags: [], capabilities: [] });
+    expect(registry.get("removeme")).toBeTruthy();
+    registry.unregister("removeme");
+    expect(registry.get("removeme")).toBeNull();
+    expect(registry.getSkillCount()).toBe(0);
+  });
 });

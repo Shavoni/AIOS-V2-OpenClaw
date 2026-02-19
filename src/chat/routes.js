@@ -87,22 +87,6 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
     }
   });
 
-  // GET /api/skills — List skills
-  api.get("/skills", (_req, res) => {
-    try {
-      const allSkills = skills.getAllSkills().map((s) => ({
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        capabilities: s.capabilities,
-        hasScripts: s.hasScripts,
-      }));
-      res.json(allSkills);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   // GET /api/agent — Agent info
   api.get("/agent", (_req, res) => {
     try {
@@ -225,50 +209,6 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
       }
       await memory.fileMemory.writeMemoryFile(filename, content);
       res.json({ ok: true, filename });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // GET /api/skills/:id — Get single skill detail
-  api.get("/skills/:id", (req, res) => {
-    try {
-      const skill = skills.getSkill(req.params.id);
-      if (!skill) return res.status(404).json({ error: "Skill not found" });
-
-      // Read SKILL.md content if available
-      let readme = "";
-      const skillDir = path.join(config.projectRoot, "skills", skill.id);
-      const skillMdPath = path.join(skillDir, "SKILL.md");
-      if (fs.existsSync(skillMdPath)) {
-        readme = fs.readFileSync(skillMdPath, "utf-8");
-      }
-
-      // List available scripts
-      const scriptsDir = path.join(skillDir, "scripts");
-      let scripts = [];
-      if (fs.existsSync(scriptsDir)) {
-        scripts = fs.readdirSync(scriptsDir).filter((f) => !f.startsWith("."));
-      }
-
-      res.json({
-        ...skill,
-        readme,
-        scripts,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // POST /api/skills/:id/execute — Execute a skill script
-  api.post("/skills/:id/execute", validate(schemas.executeSkill), async (req, res) => {
-    try {
-      const { command, args } = req.body;
-      if (!command) return res.status(400).json({ error: "command required" });
-
-      const result = await skills.executeScript(req.params.id, command, args);
-      res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

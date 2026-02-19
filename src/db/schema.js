@@ -390,8 +390,55 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_research_sources_job ON research_sources(job_id)`,
 ];
 
+// Safe column additions for existing databases (ALTER TABLE is a no-op if column exists)
+const MIGRATIONS = [
+  // Agents branding columns (added in PR #7)
+  { table: "agents", column: "logo_url", def: "TEXT DEFAULT ''" },
+  { table: "agents", column: "brand_color", def: "TEXT DEFAULT ''" },
+  { table: "agents", column: "brand_tagline", def: "TEXT DEFAULT ''" },
+  // Knowledge documents — soft delete + provenance (added in PR #7-#8)
+  { table: "knowledge_documents", column: "source_type", def: "TEXT DEFAULT 'manual_entry'" },
+  { table: "knowledge_documents", column: "source_url", def: "TEXT" },
+  { table: "knowledge_documents", column: "research_job_id", def: "TEXT" },
+  { table: "knowledge_documents", column: "priority", def: "INTEGER DEFAULT 50" },
+  { table: "knowledge_documents", column: "language", def: "TEXT" },
+  { table: "knowledge_documents", column: "is_deleted", def: "INTEGER DEFAULT 0" },
+  { table: "knowledge_documents", column: "deleted_at", def: "TEXT" },
+  { table: "knowledge_documents", column: "updated_at", def: "TEXT NOT NULL DEFAULT (datetime('now'))" },
+  { table: "knowledge_documents", column: "metadata", def: "TEXT DEFAULT '{}'" },
+];
+
+function _tableHasColumn(db, table, column) {
+  try {
+    const result = db.exec(`PRAGMA table_info(${table})`);
+    if (!result.length) return false;
+    return result[0].values.some((row) => row[1] === column);
+  } catch {
+    return false;
+  }
+}
+
 function initSchema(db) {
-  for (const stmt of SCHEMA) {
+  // 1. Run CREATE TABLE statements first
+  const tables = SCHEMA.filter((s) => s.trimStart().startsWith("CREATE TABLE"));
+  for (const stmt of tables) {
+    db.run(stmt + ";");
+  }
+
+  // 2. Run migrations to add missing columns to existing tables
+  for (const { table, column, def } of MIGRATIONS) {
+    if (!_tableHasColumn(db, table, column)) {
+      try {
+        db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${def};`);
+      } catch {
+        // Column may already exist or table doesn't exist yet — safe to ignore
+      }
+    }
+  }
+
+  // 3. Run CREATE INDEX statements (may depend on migrated columns)
+  const indexes = SCHEMA.filter((s) => s.trimStart().startsWith("CREATE INDEX"));
+  for (const stmt of indexes) {
     db.run(stmt + ";");
   }
 }
