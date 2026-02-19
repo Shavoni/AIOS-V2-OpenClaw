@@ -1,6 +1,6 @@
 # AIOS V2 — Technical Architecture Reference
 
-> Last updated: 2026-02-18 | Version: 0.1.0 | 49 test suites, 379 tests passing
+> Last updated: 2026-02-19 | Version: 0.2.0 | 79 test suites, 816 tests passing
 
 ## What AIOS V2 Is
 
@@ -77,13 +77,14 @@ A self-hostable AI operating system and agent orchestration platform. Full-stack
 
 ---
 
-## API Routes (13 Groups)
+## API Routes (14 Groups)
 
 | Route | Auth Level | Purpose |
 |-------|-----------|---------|
 | `/api/auth` | None (self-handles) | Login, register, refresh tokens |
 | `/api/` (chat) | viewer | Core chat with LLM routing |
 | `/api/agents` | operator | Agent CRUD, classifier |
+| `/api/skills` | operator | Skills CRUD, upload, execute |
 | `/api/hitl` | operator | Approval queue management |
 | `/api/analytics` + `/reports` | viewer | Query metrics, summary/text reports |
 | `/api/audit` | operator | Audit event log |
@@ -174,24 +175,25 @@ createApp()
 
 | Category | Suites | Tests |
 |----------|--------|-------|
-| Frontend | 6 | 47 |
+| Frontend | 9 | 74 |
 | Integration | 4 | 28 |
 | Accessibility | 5 | 22 |
+| Skills | 5 | 38 |
 | Backend Services | 20+ | 200+ |
 | Auth/Middleware | 4 | 40+ |
 | RAG/Embeddings | 3 | 20+ |
 | GDPR | 3 | 20+ |
-| **Total** | **49** | **379** |
+| **Total** | **79** | **816** |
 
 ---
 
 ## Current Status
 
-- Version: 0.1.0
+- Version: 0.2.0
 - Architecture: Complete
-- Backend: Complete (13 route groups, 25 tables)
+- Backend: Complete (14 route groups, 25 tables)
 - Frontend: Complete (13 pages, real-time WebSocket)
-- Tests: 49 suites, 379 passing, 0 failures
+- Tests: 79 suites, 816 passing, 0 failures
 - Deployment: Local-ready (npm start), Docker-ready (Dockerfile + docker-compose.yml)
 
 ### Next Steps

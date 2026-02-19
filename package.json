@@ -1,6 +1,6 @@
 {
   "name": "aios-v2",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AIOS V2 — Autonomous Intelligent Operating System powered by OpenClaw",
   "main": "server.js",
   "scripts": {
