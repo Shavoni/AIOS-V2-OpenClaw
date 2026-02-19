@@ -68,6 +68,8 @@ const { EmbeddingClassifier } = require('./governance/embedding-classifier');
 const { DocumentParser } = require('./rag/document-parser');
 const { WebCrawler } = require('./agents/web-crawler');
 const { ManusIngestService } = require('./agents/manus-ingest');
+const { ManusSessionIngest } = require('./agents/manus-session-ingest');
+const { createManusRoutes } = require('./agents/manus-routes');
 
 async function createApp() {
   // 1. Load config
@@ -171,8 +173,9 @@ async function createApp() {
   const documentParser = new DocumentParser();
   const webCrawler = new WebCrawler();
 
-  // MANUS ingest service
+  // MANUS ingest service + session ingest
   const manusIngest = new ManusIngestService({ agentManager: agentManagerService, rag, documentParser });
+  const manusSessionIngest = new ManusSessionIngest({ agentManager: agentManagerService, rag, documentParser });
 
   // Agent management — operator access required
   apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler, manusIngest }));
@@ -265,6 +268,15 @@ async function createApp() {
   });
   apiRoutes.use('/research', authRequired('operator'), createResearchRoutes(researchQueueService, researchManager));
 
+  // MANUS automation — operator access required
+  apiRoutes.use('/manus', authRequired('operator'), createManusRoutes({
+    manusIngest,
+    sessionIngest: manusSessionIngest,
+    agentManager: agentManagerService,
+    rag,
+    eventBus,
+  }));
+
   // Auto-populate agent KB from completed research jobs
   eventBus.on('research:completed', ({ jobId }) => {
     try {
@@ -277,7 +289,7 @@ async function createApp() {
     } catch { /* non-critical — don't break the pipeline */ }
   });
 
-  console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research`);
+  console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research, manus`);
 
   // Cleanup hook
   const shutdown = () => {

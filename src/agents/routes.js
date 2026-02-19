@@ -378,6 +378,66 @@ function createAgentRoutes(agentManager, classifier, deps = {}) {
     }
   });
 
+  // POST — per-agent logo upload (base64)
+  router.post("/:id/logo", (req, res) => {
+    try {
+      const agent = agentManager.getAgent(req.params.id);
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+      const { image, filename } = req.body;
+      if (!image) return res.status(400).json({ error: "image (base64) is required" });
+
+      const fs = require("fs");
+      const path = require("path");
+
+      const ALLOWED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"]);
+      const ext = path.extname(filename || ".png").toLowerCase();
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        return res.status(400).json({ error: `Invalid file type: ${ext}` });
+      }
+
+      // Save to public/uploads/agents/<agentId>/
+      const uploadsDir = path.resolve(__dirname, "../../public/uploads/agents", req.params.id);
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+      const safeName = `logo${ext}`;
+      const filePath = path.join(uploadsDir, safeName);
+
+      // Decode base64 and write
+      const buffer = Buffer.from(image, "base64");
+      if (buffer.length > 2 * 1024 * 1024) {
+        return res.status(400).json({ error: "Logo file too large (max 2MB)" });
+      }
+      fs.writeFileSync(filePath, buffer);
+
+      const logoUrl = `/uploads/agents/${req.params.id}/${safeName}`;
+      const updated = agentManager.updateAgent(req.params.id, { logo_url: logoUrl });
+
+      res.json({ ok: true, logo_url: logoUrl, agent: updated });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT — update agent branding
+  router.put("/:id/branding", (req, res) => {
+    try {
+      const agent = agentManager.getAgent(req.params.id);
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+
+      const { brand_color, brand_tagline, logo_url } = req.body;
+      const updates = {};
+      if (brand_color !== undefined) updates.brand_color = brand_color;
+      if (brand_tagline !== undefined) updates.brand_tagline = brand_tagline;
+      if (logo_url !== undefined) updates.logo_url = logo_url;
+
+      const updated = agentManager.updateAgent(req.params.id, updates);
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   return router;
 }
 

@@ -55,6 +55,7 @@ export class AgentsPage {
             </h1>
             <p class="page-subtitle">Manage AI department agents, knowledge bases, and routing</p>
             <div class="page-header-actions">
+              <button class="btn btn-sm" id="manus-ingest-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);margin-right:8px">MANUS Ingest</button>
               <button class="btn btn-sm" id="create-agent-btn" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.3)">+ New Agent</button>
             </div>
           </div>
@@ -88,6 +89,9 @@ export class AgentsPage {
   _bindEvents(mount) {
     const createBtn = $('#create-agent-btn', mount);
     if (createBtn) createBtn.addEventListener('click', () => this._showCreateDialog());
+
+    const manusBtn = $('#manus-ingest-btn', mount);
+    if (manusBtn) manusBtn.addEventListener('click', () => this._showSessionIngestDialog());
   }
 
   async _fetchAgents() {
@@ -183,9 +187,10 @@ export class AgentsPage {
 
       card.innerHTML = `
         <div class="agent-card-header">
-          <div class="agent-avatar" style="background:${domainStyle.dim};color:${domainStyle.color}">
-            ${(agent.name || 'A').charAt(0).toUpperCase()}
-          </div>
+          ${agent.logo_url
+            ? `<img class="agent-avatar agent-logo" src="${escapeHtml(agent.logo_url)}" alt="${escapeHtml(agent.name)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover" />`
+            : `<div class="agent-avatar" style="background:${domainStyle.dim};color:${domainStyle.color}">${(agent.name || 'A').charAt(0).toUpperCase()}</div>`
+          }
           <div class="agent-card-info">
             <h3 class="agent-card-name">${escapeHtml(agent.name)}</h3>
             <p class="agent-card-title">${escapeHtml(agent.title || '')}</p>
@@ -198,6 +203,7 @@ export class AgentsPage {
           ${agent.hitl_mode ? `<span class="badge badge-hitl-${(agent.hitl_mode || 'auto').toLowerCase()}">${(agent.hitl_mode || 'AUTO').toUpperCase()}</span>` : ''}
         </div>
         <p class="agent-card-desc">${escapeHtml((agent.description || 'No description').slice(0, 120))}</p>
+        ${agent.brand_tagline ? `<p class="agent-card-tagline" style="font-size:var(--font-size-xs);color:${agent.brand_color || 'var(--text-muted)'};font-style:italic;margin-top:2px">${escapeHtml(agent.brand_tagline)}</p>` : ''}
         <div class="agent-card-caps">
           ${(agent.capabilities || []).slice(0, 4).map(c => `<span class="tag tag--${domain === 'HR' ? 'purple' : domain === 'Finance' ? 'green' : domain === 'Legal' ? 'blue' : 'green'}">${escapeHtml(c)}</span>`).join('')}
         </div>
@@ -213,6 +219,8 @@ export class AgentsPage {
           items: [
             { label: 'Edit Agent', icon: ICONS.edit, onClick: () => this._showEditDialog(agent) },
             { label: 'Knowledge Base', icon: ICONS.book, onClick: () => this._showKnowledgeSheet(agent) },
+            { label: 'Branding', icon: ICONS.edit, onClick: () => this._showBrandingDialog(agent) },
+            { label: 'MANUS Research', icon: ICONS.export, onClick: () => this._showManusDialog(agent) },
             { label: 'Test Query', icon: ICONS.test, onClick: () => this._showTestDialog(agent) },
             { divider: true },
             { label: agent.status === 'active' ? 'Disable' : 'Enable', icon: ICONS.toggle, onClick: () => this._toggleAgent(agent.id, agent.status === 'active' ? 'disable' : 'enable') },
@@ -659,6 +667,214 @@ export class AgentsPage {
       showToast('Agent deleted', 'success');
       this._fetchAgents();
     } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }
+  }
+
+  // --- Branding Dialog ---
+  _showBrandingDialog(agent) {
+    const body = `
+      <div style="text-align:center;margin-bottom:var(--space-4)">
+        ${agent.logo_url
+          ? `<img src="${escapeHtml(agent.logo_url)}" alt="Logo" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" />`
+          : `<div style="width:80px;height:80px;border-radius:50%;background:var(--bg-tertiary);display:inline-flex;align-items:center;justify-content:center;font-size:32px;color:var(--text-muted)">${(agent.name || 'A').charAt(0).toUpperCase()}</div>`
+        }
+      </div>
+      <div class="form-group">
+        <label class="input-label">Logo (upload image)</label>
+        <input type="file" id="branding-logo-file" accept=".png,.jpg,.jpeg,.gif,.svg,.webp" class="input" />
+      </div>
+      <div class="form-group">
+        <label class="input-label">Brand Color</label>
+        <input type="color" id="branding-color" value="${agent.brand_color || '#6366f1'}" style="width:100%;height:40px;border:none;cursor:pointer" />
+      </div>
+      <div class="form-group">
+        <label class="input-label">Tagline</label>
+        <input type="text" class="input" id="branding-tagline" value="${escapeHtml(agent.brand_tagline || '')}" placeholder="e.g. Protecting Cleveland" />
+      </div>
+    `;
+
+    const self = this;
+    showModal({
+      title: `Branding: ${agent.name}`,
+      body,
+      actions: [
+        {
+          label: 'Save Branding',
+          class: 'btn btn-primary',
+          onClick: async () => {
+            try {
+              // Upload logo if selected
+              const fileInput = document.getElementById('branding-logo-file');
+              if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                const b64 = await new Promise((resolve) => {
+                  reader.onload = () => resolve(reader.result.split(',')[1]);
+                  reader.readAsDataURL(file);
+                });
+                await self.api._post(`/api/agents/${agent.id}/logo`, {
+                  image: b64,
+                  filename: file.name,
+                });
+              }
+
+              // Update branding fields
+              await self.api._put(`/api/agents/${agent.id}/branding`, {
+                brand_color: document.getElementById('branding-color')?.value || '',
+                brand_tagline: document.getElementById('branding-tagline')?.value || '',
+              });
+
+              showToast('Branding updated', 'success');
+              hideModal();
+              self._fetchAgents();
+            } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }
+          },
+        },
+        { label: 'Cancel', class: 'btn btn-ghost', onClick: () => hideModal() },
+      ],
+    });
+  }
+
+  // --- MANUS Research Dialog ---
+  _showManusDialog(agent) {
+    const body = `
+      <div class="form-group">
+        <label class="input-label">Research Prompt</label>
+        <textarea class="textarea" id="manus-prompt" rows="4" placeholder="Describe the research you want MANUS to perform for this agent...">${''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="input-label">Agent Profile</label>
+        <select class="select" id="manus-profile">
+          <option value="manus-1.6">manus-1.6 (Standard)</option>
+          <option value="manus-1.6-lite">manus-1.6-lite (Fast)</option>
+          <option value="manus-1.6-max">manus-1.6-max (Deep)</option>
+        </select>
+      </div>
+      <div id="manus-result" style="margin-top:var(--space-4)"></div>
+    `;
+
+    const self = this;
+    showModal({
+      title: `MANUS Research: ${agent.name}`,
+      body,
+      size: 'lg',
+      actions: [
+        {
+          label: 'Submit Research',
+          class: 'btn btn-primary',
+          onClick: async () => {
+            const prompt = document.getElementById('manus-prompt')?.value.trim();
+            const profile = document.getElementById('manus-profile')?.value;
+            const resultEl = document.getElementById('manus-result');
+            if (!prompt) { showToast('Enter a research prompt', 'error'); return; }
+            if (resultEl) resultEl.innerHTML = '<div class="spinner spinner--sm" style="margin:var(--space-4) auto"></div><p style="text-align:center;color:var(--text-muted)">Submitting to MANUS...</p>';
+            try {
+              const result = await self.api._post('/api/manus/research', {
+                prompt,
+                agentId: agent.id,
+                agentProfile: profile,
+              });
+              if (resultEl) resultEl.innerHTML = `
+                <div class="glass-card" style="padding:var(--space-4)">
+                  <p style="color:var(--accent-green);font-weight:600">Research submitted</p>
+                  <p style="font-size:var(--font-size-sm);color:var(--text-secondary);margin-top:var(--space-2)">${escapeHtml(result.task_title || '')}</p>
+                  <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-2)">Task ID: ${escapeHtml(result.task_id || '')}</p>
+                  <p style="font-size:var(--font-size-xs);color:var(--text-muted)">Results will auto-ingest into this agent's KB when complete.</p>
+                  ${result.task_url ? `<a href="${escapeHtml(result.task_url)}" target="_blank" style="font-size:var(--font-size-sm);color:var(--accent-blue);margin-top:var(--space-2);display:inline-block">View on MANUS</a>` : ''}
+                </div>
+              `;
+            } catch (err) {
+              if (resultEl) resultEl.innerHTML = `<div class="badge badge-offline">${escapeHtml(err.message)}</div>`;
+            }
+          },
+        },
+        { label: 'Close', class: 'btn btn-ghost', onClick: () => hideModal() },
+      ],
+    });
+  }
+
+  // --- MANUS Session Ingest Dialog ---
+  _showSessionIngestDialog() {
+    const body = `
+      <p style="color:var(--text-secondary);font-size:var(--font-size-sm);margin-bottom:var(--space-4)">
+        Point to a MANUS output directory to automatically provision agents with knowledge bases, branding, and governance policies.
+      </p>
+      <div class="form-group">
+        <label class="input-label">MANUS Output Directory Path</label>
+        <input type="text" class="input" id="session-dir-path" placeholder="D:\\Cleveland_Municipal_AI_Suite" />
+      </div>
+      <div style="margin-top:var(--space-3)">
+        <button class="btn btn-sm btn-outline" id="session-preview-btn">Preview</button>
+      </div>
+      <div id="session-preview-result" style="margin-top:var(--space-4)"></div>
+      <div id="session-ingest-result" style="margin-top:var(--space-4)"></div>
+    `;
+
+    const self = this;
+    showModal({
+      title: 'MANUS Session Ingest',
+      body,
+      size: 'lg',
+      actions: [
+        {
+          label: 'Ingest & Provision Agents',
+          class: 'btn btn-primary',
+          onClick: async () => {
+            const dirPath = document.getElementById('session-dir-path')?.value.trim();
+            const resultEl = document.getElementById('session-ingest-result');
+            if (!dirPath) { showToast('Enter a directory path', 'error'); return; }
+            if (resultEl) resultEl.innerHTML = '<div class="spinner spinner--sm" style="margin:var(--space-4) auto"></div><p style="text-align:center;color:var(--text-muted)">Ingesting session...</p>';
+            try {
+              const result = await self.api._post('/api/manus/ingest-session', { directoryPath: dirPath });
+              if (resultEl) resultEl.innerHTML = `
+                <div class="glass-card" style="padding:var(--space-4)">
+                  <p style="color:var(--accent-green);font-weight:600">${escapeHtml(result.message || 'Done')}</p>
+                  <p style="font-size:var(--font-size-sm);margin-top:var(--space-2)">Agents created: <strong>${result.agentsCreated}</strong></p>
+                  <p style="font-size:var(--font-size-sm)">KB entries: <strong>${result.totalKBEntriesCreated}</strong></p>
+                  <p style="font-size:var(--font-size-sm)">Folders skipped: <strong>${result.foldersSkipped || 0}</strong></p>
+                </div>
+              `;
+              self._fetchAgents();
+            } catch (err) {
+              if (resultEl) resultEl.innerHTML = `<div class="badge badge-offline">${escapeHtml(err.message)}</div>`;
+            }
+          },
+        },
+        { label: 'Cancel', class: 'btn btn-ghost', onClick: () => hideModal() },
+      ],
+    });
+
+    // Preview handler
+    setTimeout(() => {
+      const previewBtn = document.getElementById('session-preview-btn');
+      if (previewBtn) {
+        previewBtn.addEventListener('click', async () => {
+          const dirPath = document.getElementById('session-dir-path')?.value.trim();
+          const previewEl = document.getElementById('session-preview-result');
+          if (!dirPath || !previewEl) return;
+          previewEl.innerHTML = '<div class="spinner spinner--sm"></div>';
+          try {
+            const manifest = await self.api._post('/api/manus/ingest-session/preview', { directoryPath: dirPath });
+            previewEl.innerHTML = `
+              <div class="glass-card" style="padding:var(--space-3)">
+                <p style="font-size:var(--font-size-sm)"><strong>${manifest.totalFolders}</strong> GPT folders found | <strong>${manifest.validFolders}</strong> valid | <strong>${manifest.invalidFolders}</strong> invalid | <strong>${manifest.totalKBFiles}</strong> KB files</p>
+                <div style="margin-top:var(--space-2);font-size:var(--font-size-xs);max-height:200px;overflow:auto">
+                  ${(manifest.folders || []).map(f => `
+                    <div style="padding:4px 0;border-bottom:1px solid var(--border)">
+                      <span style="color:${f.isValid ? 'var(--accent-green)' : 'var(--accent-red)'}">&#9679;</span>
+                      <strong>${escapeHtml(f.agentName)}</strong>
+                      — ${f.kbFileCount} KB files
+                      ${!f.isValid ? `<span style="color:var(--accent-red)">(${escapeHtml(f.validationErrors.join(', '))})</span>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          } catch (err) {
+            previewEl.innerHTML = `<div class="badge badge-offline">${escapeHtml(err.message)}</div>`;
+          }
+        });
+      }
+    }, 50);
   }
 
   _cleanup() {
