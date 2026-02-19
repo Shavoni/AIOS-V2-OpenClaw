@@ -9,8 +9,9 @@
  * @param {string} opts.title - Modal title
  * @param {string} opts.body - HTML body content
  * @param {Array<{label: string, class?: string, onClick: Function}>} [opts.actions] - Action buttons
+ * @param {'lg'|'sm'} [opts.size] - Modal size variant
  */
-export function showModal({ title, body, actions = [] }) {
+export function showModal({ title, body, actions = [], size } = {}) {
   // Remove any existing modal
   hideModal();
 
@@ -22,6 +23,7 @@ export function showModal({ title, body, actions = [] }) {
   overlay.id = 'modal-overlay';
 
   const modalId = 'modal-title-' + Date.now();
+  const sizeClass = size === 'lg' ? ' modal--lg' : size === 'sm' ? ' modal--sm' : '';
 
   const actionButtons = actions
     .map(
@@ -31,7 +33,7 @@ export function showModal({ title, body, actions = [] }) {
     .join('');
 
   overlay.innerHTML = `
-    <div class="modal-container glass-card" role="dialog" aria-modal="true" aria-labelledby="${modalId}" tabindex="-1">
+    <div class="modal-container glass-card${sizeClass}" role="dialog" aria-modal="true" aria-labelledby="${modalId}" tabindex="-1">
       <div class="modal-header">
         <h3 class="modal-title" id="${modalId}">${escapeHtml(title)}</h3>
         <button class="modal-close" aria-label="Close modal">&times;</button>
@@ -83,11 +85,6 @@ export function showModal({ title, body, actions = [] }) {
   const keyHandler = (e) => {
     if (e.key === 'Escape') {
       hideModal();
-      document.removeEventListener('keydown', keyHandler);
-      // Restore focus to the element that opened the modal
-      if (previousFocus && previousFocus.focus) {
-        previousFocus.focus();
-      }
       return;
     }
 
@@ -162,5 +159,7 @@ function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

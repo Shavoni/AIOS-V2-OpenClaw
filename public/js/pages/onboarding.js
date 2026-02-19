@@ -1,21 +1,20 @@
 /**
  * AIOS V2 - Onboarding Page (V1 Polish)
- * 8-step discovery wizard:
- *   OrgType -> Industry -> Source -> Discovering -> Select -> LinkGPTs -> Review -> Deploy
+ * 6-step discovery wizard:
+ *   Source -> Discovering -> Select -> LinkGPTs -> Review -> Deploy
  *
+ * Source step offers three modes: website scan, template picker, or manual entry.
  * Supports website crawl discovery with async polling, bulk agent selection,
  * compliance guardrails, GPT linking, and full deployment flow.
  */
 
 import { createToggle } from '../components/toggle.js';
 import { showToast } from '../components/toast.js';
-import { escapeHtml, $ } from '../utils.js';
+import { escapeHtml, $, debounce } from '../utils.js';
 
 /* ──────────────────────────── Constants ──────────────────────────── */
 
 const STEP_CONFIG = [
-  { id: 'orgtype',      label: 'Org Type',   icon: '&#127963;' },
-  { id: 'industry',     label: 'Industry',   icon: '&#128188;' },
   { id: 'source',       label: 'Source',      icon: '&#127760;' },
   { id: 'discovering',  label: 'Discover',    icon: '&#128269;' },
   { id: 'select',       label: 'Select',      icon: '&#128101;' },
@@ -47,11 +46,6 @@ const INDUSTRIES = [
   { value: 'other',       title: 'Other / Custom', icon: '&#9881;',   badges: [],                              desc: 'Custom compliance framework configuration' },
 ];
 
-const DOMAIN_FILTERS = [
-  'All', 'HR', 'Finance', 'Legal', 'PublicHealth', 'PublicSafety',
-  'Parks', 'Building', 'Utilities', 'IT', 'Communications', 'General',
-];
-
 const TEMPLATE_OPTIONS = [
   { value: '', label: 'Auto-detect' },
   { value: 'customer-service', label: 'Customer Service' },
@@ -64,6 +58,32 @@ const TEMPLATE_OPTIONS = [
   { value: 'legal', label: 'Legal & Compliance' },
   { value: 'it', label: 'IT & Technology' },
 ];
+
+const SECTOR_EMOJI_MAP = {
+  'building-columns':    '&#127963;',  // Government
+  'graduation-cap':      '&#127891;',  // Education
+  'heart-pulse':         '&#10084;&#65039;', // Healthcare
+  'scale-balanced':      '&#9878;&#65039;',  // Legal
+  'landmark':            '&#127974;',  // Financial Services
+  'store':               '&#128722;',  // Retail
+  'utensils':            '&#127860;',  // Food & Beverage
+  'house':               '&#127968;',  // Real Estate
+  'hard-hat':            '&#128679;',  // Construction
+  'industry':            '&#127981;',  // Manufacturing
+  'microchip':           '&#128187;',  // Technology
+  'briefcase':           '&#128188;',  // Professional Services
+  'hand-holding-heart':  '&#129309;',  // Nonprofit
+  'hotel':               '&#127976;',  // Hospitality
+  'truck':               '&#128666;',  // Transportation
+  'car':                 '&#128663;',  // Automotive
+  'spa':                 '&#128134;',  // Beauty & Personal Care
+  'film':                '&#127910;',  // Media & Entertainment
+  'tractor':             '&#128668;',  // Agriculture
+  'bolt':                '&#9889;',    // Energy & Utilities
+  'people-roof':         '&#128106;',  // Childcare & Senior Care
+  'wrench':              '&#128295;',  // Other Services
+  'user':                '&#128100;',  // Solopreneur
+};
 
 /* ──────────────────────────── Page Class ─────────────────────────── */
 
@@ -81,15 +101,24 @@ export class OnboardingPage {
     this._discovery  = null;
     this._agents     = [];
     this._filter     = 'All';
-    this._step       = 'orgtype';
+    this._step       = 'source';
 
     // New step data
     this._selectedOrgType  = null;
     this._selectedIndustry = null;
-    this._sourceMode       = 'website';   // 'website' | 'manual'
+    this._sourceMode       = 'website';   // 'website' | 'template' | 'manual'
     this._gptLinks         = {};          // agentId -> url
     this._manualDepts      = '';
     this._selectSearchQuery = '';
+
+    // Template registry state
+    this._sectors                   = [];
+    this._selectedSector            = null;
+    this._sectorSearch              = '';
+    this._sectorTemplates           = [];
+    this._selectedTemplate          = null;
+    this._templateRegistryAvailable = null;  // null = untested, true/false after probe
+    this._tpClickHandler            = null;  // tracked listener for template picker cleanup
   }
 
   /* ═══════════════════════ Render & Lifecycle ═══════════════════════ */
@@ -209,8 +238,6 @@ export class OnboardingPage {
 
   _renderStep() {
     switch (this._step) {
-      case 'orgtype':     this._renderOrgTypeStep();      break;
-      case 'industry':    this._renderIndustryStep();      break;
       case 'source':      this._renderSourceStep();        break;
       case 'discovering': this._renderDiscoveringStep();   break;
       case 'select':      this._renderSelectStep();        break;
@@ -229,162 +256,51 @@ export class OnboardingPage {
     if (content) content.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  /* ═══════════════════ Step 1: Org Type Selection ══════════════════ */
+  /* ═══════════════════ Step 1: Source ══════════════════════════════ */
 
-  _renderOrgTypeStep() {
+  async _renderSourceStep() {
     const content = $('#onb-content');
 
-    content.innerHTML = `
-      <div class="glass-card" style="padding:2rem; max-width:800px; margin:0 auto">
-        <h2 style="margin:0 0 0.25rem">What type of organization are you?</h2>
-        <p style="color:var(--text-muted); margin:0 0 1.5rem; font-size:0.9rem">
-          Select your organization type so we can tailor agent templates and compliance requirements.
-        </p>
-
-        <div class="onb-card-grid cols-5" id="onb-orgtype-grid">
-          ${ORG_TYPES.map(org => `
-            <div class="onb-selectable-card ${this._selectedOrgType === org.value ? 'selected' : ''}"
-                 data-org-type="${org.value}">
-              <span class="card-icon">${org.icon}</span>
-              <div class="card-title">${escapeHtml(org.title)}</div>
-              <div class="card-desc">${escapeHtml(org.desc)}</div>
-            </div>
-          `).join('')}
-        </div>
-
-        <div style="margin-top:1.5rem; display:flex; justify-content:flex-end">
-          <button class="btn btn-primary" id="onb-orgtype-continue" ${!this._selectedOrgType ? 'disabled' : ''}
-                  style="padding:0.65rem 2rem; font-size:0.95rem">
-            Continue &#8594;
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Card selection
-    const grid = $('#onb-orgtype-grid');
-    grid.addEventListener('click', (e) => {
-      const card = e.target.closest('[data-org-type]');
-      if (!card) return;
-      this._selectedOrgType = card.dataset.orgType;
-      // Update visual selection
-      grid.querySelectorAll('.onb-selectable-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      $('#onb-orgtype-continue').disabled = false;
-    });
-
-    $('#onb-orgtype-continue').addEventListener('click', () => {
-      if (!this._selectedOrgType) { showToast('Please select an organization type', 'warning'); return; }
-      this._setStep('industry');
-    });
-
-    // Show history
-    const history = $('#onb-history');
-    if (history) history.style.display = 'block';
-  }
-
-  /* ═══════════════════ Step 2: Industry Selection ══════════════════ */
-
-  _renderIndustryStep() {
-    const content = $('#onb-content');
+    // Probe template API once (for template mode)
+    if (this._templateRegistryAvailable === null) {
+      try {
+        const sectors = await this.api._get('/api/onboarding/sectors');
+        if (sectors && sectors.length > 0) {
+          this._sectors = sectors;
+          this._templateRegistryAvailable = true;
+        } else {
+          this._templateRegistryAvailable = false;
+        }
+      } catch {
+        this._templateRegistryAvailable = false;
+      }
+    }
 
     content.innerHTML = `
       <div class="glass-card" style="padding:2rem; max-width:750px; margin:0 auto">
-        <h2 style="margin:0 0 0.25rem">Select Your Industry</h2>
+        <h2 style="margin:0 0 0.25rem">Set Up Your Agents</h2>
         <p style="color:var(--text-muted); margin:0 0 1.5rem; font-size:0.9rem">
-          Choose an industry to auto-apply relevant compliance guardrails to every agent.
-        </p>
-
-        <div class="onb-card-grid cols-3" id="onb-industry-grid" style="margin-bottom:1rem">
-          ${INDUSTRIES.map(ind => `
-            <div class="onb-selectable-card ${this._selectedIndustry === ind.value ? 'selected' : ''}"
-                 data-industry="${ind.value}" style="text-align:left; padding:1.25rem">
-              <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem">
-                <span style="font-size:1.75rem">${ind.icon}</span>
-                <div class="card-title" style="margin:0">${escapeHtml(ind.title)}</div>
-              </div>
-              <div class="card-desc" style="margin-bottom:0.5rem">${escapeHtml(ind.desc)}</div>
-              <div style="display:flex; flex-wrap:wrap; gap:0.25rem">
-                ${ind.badges.map(b => `<span class="onb-badge onb-badge-compliance">${escapeHtml(b)}</span>`).join('')}
-                ${ind.badges.length === 0 ? '<span style="font-size:0.7rem; color:var(--text-muted); font-style:italic">Custom compliance</span>' : ''}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        ${this._selectedIndustry ? this._renderCompliancePreview() : ''}
-
-        <div style="margin-top:1.5rem; display:flex; justify-content:space-between">
-          <button class="btn btn-ghost" id="onb-industry-back">&#8592; Back</button>
-          <button class="btn btn-primary" id="onb-industry-continue" ${!this._selectedIndustry ? 'disabled' : ''}
-                  style="padding:0.65rem 2rem; font-size:0.95rem">
-            Continue &#8594;
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Card selection
-    const grid = $('#onb-industry-grid');
-    grid.addEventListener('click', (e) => {
-      const card = e.target.closest('[data-industry]');
-      if (!card) return;
-      this._selectedIndustry = card.dataset.industry;
-      // Re-render to show compliance preview
-      this._renderIndustryStep();
-    });
-
-    $('#onb-industry-back').addEventListener('click', () => this._setStep('orgtype'));
-    $('#onb-industry-continue').addEventListener('click', () => {
-      if (!this._selectedIndustry) { showToast('Please select an industry', 'warning'); return; }
-      this._setStep('source');
-    });
-  }
-
-  /** Render a small compliance preview box below the industry grid */
-  _renderCompliancePreview() {
-    const industry = INDUSTRIES.find(i => i.value === this._selectedIndustry);
-    if (!industry || industry.badges.length === 0) return '';
-
-    return `
-      <div style="padding:1rem; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.2);
-                  border-radius:8px; margin-top:0.5rem">
-        <div style="font-weight:600; font-size:0.85rem; margin-bottom:0.5rem; color:#d97706">
-          &#128274; Compliance guardrails that will be enforced:
-        </div>
-        <div style="display:flex; flex-wrap:wrap; gap:0.35rem">
-          ${industry.badges.map(b => `<span class="onb-badge onb-badge-compliance" style="font-size:0.75rem; padding:0.2rem 0.6rem">${escapeHtml(b)}</span>`).join('')}
-        </div>
-        <p style="margin:0.5rem 0 0; font-size:0.78rem; color:var(--text-muted)">
-          These rules will be automatically applied to all agents during deployment.
-        </p>
-      </div>
-    `;
-  }
-
-  /* ═══════════════════ Step 3: Source ══════════════════════════════ */
-
-  _renderSourceStep() {
-    const content = $('#onb-content');
-
-    content.innerHTML = `
-      <div class="glass-card" style="padding:2rem; max-width:700px; margin:0 auto">
-        <h2 style="margin:0 0 0.25rem">Discover Your Organization</h2>
-        <p style="color:var(--text-muted); margin:0 0 1.5rem; font-size:0.9rem">
-          Choose how to provide your organization structure: crawl a website automatically or enter departments manually.
+          Enter a website URL to auto-discover departments, pick from a template, or enter them manually.
         </p>
 
         <!-- Source Mode Toggle -->
-        <div class="onb-source-toggle" id="onb-source-toggle">
+        <div class="onb-source-toggle" id="onb-source-toggle" style="display:flex; gap:0.75rem; margin-bottom:1.5rem">
           <div class="onb-source-option ${this._sourceMode === 'website' ? 'active' : ''}" data-mode="website">
             <div style="font-size:1.75rem; margin-bottom:0.5rem">&#127760;</div>
-            <div style="font-weight:600; font-size:0.9rem">Website Discovery</div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Auto-crawl your website to find departments</div>
+            <div style="font-weight:600; font-size:0.9rem">Scan Website</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Auto-crawl to find departments & leadership</div>
           </div>
+          ${this._templateRegistryAvailable ? `
+          <div class="onb-source-option ${this._sourceMode === 'template' ? 'active' : ''}" data-mode="template">
+            <div style="font-size:1.75rem; margin-bottom:0.5rem">&#128196;</div>
+            <div style="font-weight:600; font-size:0.9rem">Use Template</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Pre-built departments by industry</div>
+          </div>
+          ` : ''}
           <div class="onb-source-option ${this._sourceMode === 'manual' ? 'active' : ''}" data-mode="manual">
             <div style="font-size:1.75rem; margin-bottom:0.5rem">&#9997;</div>
             <div style="font-weight:600; font-size:0.9rem">Manual Entry</div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Type department names one per line</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem">Type department names yourself</div>
           </div>
         </div>
 
@@ -401,6 +317,20 @@ export class OnboardingPage {
                      style="font-size:1.1rem; padding:0.75rem"
                      value="${escapeHtml(this._wizard?.website_url || '')}" />
             </label>
+            <div style="padding:1rem; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:8px">
+              <div style="font-weight:600; font-size:0.85rem; margin-bottom:0.5rem">What we'll discover:</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.8rem; color:var(--text-muted)">
+                <span>&#128100; Executives & leadership</span>
+                <span>&#127970; Departments & teams</span>
+                <span>&#128202; Data sources & portals</span>
+                <span>&#128196; Policies & documents</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Template mode fields -->
+          <div id="onb-template-fields" style="display:${this._sourceMode === 'template' ? 'flex' : 'none'}; flex-direction:column; gap:1rem">
+            <div id="onb-template-picker"></div>
           </div>
 
           <!-- Manual mode fields -->
@@ -412,25 +342,19 @@ export class OnboardingPage {
             </label>
           </div>
 
-          <div style="padding:1rem; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:8px; margin-top:0.25rem">
-            <div style="font-weight:600; font-size:0.85rem; margin-bottom:0.5rem">What we'll discover:</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.8rem; color:var(--text-muted)">
-              <span>&#128100; Executives & leadership</span>
-              <span>&#127970; Departments & teams</span>
-              <span>&#128202; Data sources & portals</span>
-              <span>&#128196; Policies & documents</span>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; margin-top:0.5rem">
-            <button class="btn btn-ghost" id="onb-source-back">&#8592; Back</button>
+          <div style="display:flex; justify-content:flex-end; margin-top:0.5rem">
             <button class="btn btn-primary" id="onb-discover-btn" style="padding:0.75rem 2rem; font-size:1rem">
-              ${this._sourceMode === 'website' ? '&#128269; Start Discovery' : '&#10004; Continue with Departments'}
+              ${this._sourceMode === 'website' ? '&#128269; Start Discovery' : this._sourceMode === 'template' ? '&#10004; Use Template' : '&#10004; Continue with Departments'}
             </button>
           </div>
         </div>
       </div>
     `;
+
+    // Render template picker if in template mode
+    if (this._sourceMode === 'template') {
+      this._renderTemplatePicker();
+    }
 
     // Source mode toggle
     const toggle = $('#onb-source-toggle');
@@ -441,17 +365,21 @@ export class OnboardingPage {
       toggle.querySelectorAll('.onb-source-option').forEach(o => o.classList.remove('active'));
       option.classList.add('active');
 
-      const websiteFields = $('#onb-website-fields');
-      const manualFields  = $('#onb-manual-fields');
-      const btn = $('#onb-discover-btn');
+      const websiteFields  = $('#onb-website-fields');
+      const templateFields = $('#onb-template-fields');
+      const manualFields   = $('#onb-manual-fields');
+      const btn            = $('#onb-discover-btn');
+
+      websiteFields.style.display  = this._sourceMode === 'website'  ? 'flex' : 'none';
+      templateFields.style.display = this._sourceMode === 'template' ? 'flex' : 'none';
+      manualFields.style.display   = this._sourceMode === 'manual'   ? 'flex' : 'none';
 
       if (this._sourceMode === 'website') {
-        websiteFields.style.display = 'flex';
-        manualFields.style.display  = 'none';
         btn.innerHTML = '&#128269; Start Discovery';
+      } else if (this._sourceMode === 'template') {
+        btn.innerHTML = '&#10004; Use Template';
+        this._renderTemplatePicker();
       } else {
-        websiteFields.style.display = 'none';
-        manualFields.style.display  = 'flex';
         btn.innerHTML = '&#10004; Continue with Departments';
       }
     });
@@ -460,6 +388,8 @@ export class OnboardingPage {
     $('#onb-discover-btn').addEventListener('click', () => {
       if (this._sourceMode === 'website') {
         this._startAsyncDiscovery();
+      } else if (this._sourceMode === 'template') {
+        this._startTemplateDiscovery();
       } else {
         this._startManualDiscovery();
       }
@@ -469,12 +399,189 @@ export class OnboardingPage {
     const urlInput = $('#onb-url');
     if (urlInput) urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this._startAsyncDiscovery(); });
 
-    // Back
-    $('#onb-source-back').addEventListener('click', () => this._setStep('industry'));
-
-    // Show history on source step
+    // Show history
     const history = $('#onb-history');
     if (history) history.style.display = 'block';
+  }
+
+  /** Render the inline template picker (sector → template selection) */
+  async _renderTemplatePicker() {
+    const container = $('#onb-template-picker');
+    if (!container) return;
+
+    // Sector selection
+    let filtered = this._sectors;
+    if (this._sectorSearch) {
+      const q = this._sectorSearch.toLowerCase();
+      filtered = filtered.filter(s => s.name.toLowerCase().includes(q));
+    }
+
+    // If a sector is selected, show its templates
+    if (this._selectedSector && this._sectorTemplates.length > 0) {
+      const sectorMeta = this._sectors.find(s => s.id === this._selectedSector);
+      container.innerHTML = `
+        <div style="margin-bottom:1rem">
+          <button class="btn btn-sm btn-ghost" id="onb-tp-back-sector" style="margin-bottom:0.75rem">&#8592; Change sector</button>
+          <div style="font-weight:600; font-size:0.9rem; margin-bottom:0.75rem">
+            Templates for ${escapeHtml(sectorMeta?.name || this._selectedSector)}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.5rem; max-height:300px; overflow-y:auto">
+            ${this._sectorTemplates.map(t => {
+              const selected = this._selectedTemplate?.id === t.id ? 'selected' : '';
+              const deptCount = (t.departments || []).length;
+              return `
+                <div class="onb-selectable-card ${selected}" data-template-id="${escapeHtml(t.id)}"
+                     style="text-align:left; padding:1rem; cursor:pointer">
+                  <div class="card-title" style="margin:0 0 0.25rem">${escapeHtml(t.name)}</div>
+                  <div class="card-desc">${escapeHtml(t.description || '')} &mdash; ${deptCount} department${deptCount !== 1 ? 's' : ''}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      // Back to sector list
+      container.querySelector('#onb-tp-back-sector')?.addEventListener('click', () => {
+        this._selectedSector = null;
+        this._sectorTemplates = [];
+        this._selectedTemplate = null;
+        this._renderTemplatePicker();
+      });
+
+      // Template selection — remove previous listener to avoid accumulation
+      if (this._tpClickHandler) {
+        container.removeEventListener('click', this._tpClickHandler);
+      }
+      this._tpClickHandler = async (e) => {
+        const card = e.target.closest('[data-template-id]');
+        if (!card) return;
+        const templateId = card.dataset.templateId;
+        try {
+          this._selectedTemplate = await this.api._get(`/api/templates/${encodeURIComponent(templateId)}`);
+        } catch {
+          this._selectedTemplate = this._sectorTemplates.find(t => t.id === templateId) || null;
+        }
+        container.querySelectorAll('.onb-selectable-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      };
+      container.addEventListener('click', this._tpClickHandler);
+
+      return;
+    }
+
+    // Show sector grid
+    container.innerHTML = `
+      <div style="font-weight:600; font-size:0.9rem; margin-bottom:0.75rem">Pick an industry sector</div>
+      <input type="text" class="form-input" id="onb-tp-search"
+             placeholder="Search sectors..." value="${escapeHtml(this._sectorSearch)}"
+             style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; font-size:0.85rem" />
+      <div class="onb-card-grid cols-3" id="onb-tp-sector-grid">
+        ${filtered.map(s => {
+          const emoji = SECTOR_EMOJI_MAP[s.icon] || '&#128188;';
+          const selected = this._selectedSector === s.id ? 'selected' : '';
+          return `
+            <div class="onb-selectable-card ${selected}" data-sector="${s.id}" style="padding:0.75rem">
+              <span class="card-icon" style="font-size:1.5rem">${emoji}</span>
+              <div class="card-title" style="font-size:0.8rem">${escapeHtml(s.name)}</div>
+              <div class="card-desc" style="font-size:0.7rem">${s.templateCount} template${s.templateCount !== 1 ? 's' : ''}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      ${filtered.length === 0 ? '<div style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.85rem">No sectors match.</div>' : ''}
+    `;
+
+    // Search
+    const searchInput = container.querySelector('#onb-tp-search');
+    if (searchInput) {
+      const debouncedSearch = debounce((val) => {
+        this._sectorSearch = val;
+        this._renderTemplatePicker();
+      }, 200);
+      searchInput.addEventListener('input', (e) => debouncedSearch(e.target.value.trim()));
+    }
+
+    // Sector click → load templates
+    const grid = container.querySelector('#onb-tp-sector-grid');
+    if (grid) {
+      grid.addEventListener('click', async (e) => {
+        const card = e.target.closest('[data-sector]');
+        if (!card) return;
+        this._selectedSector = card.dataset.sector;
+        this._selectedOrgType = card.dataset.sector;
+        try {
+          const result = await this.api._get(`/api/templates?sector=${encodeURIComponent(this._selectedSector)}`);
+          this._sectorTemplates = result.templates || result || [];
+        } catch {
+          this._sectorTemplates = [];
+        }
+        this._renderTemplatePicker();
+      });
+    }
+  }
+
+  /** Start discovery from a selected template */
+  async _startTemplateDiscovery() {
+    const orgName = $('#onb-org-name')?.value.trim();
+    if (!orgName) {
+      showToast('Please enter an organization name', 'warning');
+      return;
+    }
+    if (!this._selectedTemplate) {
+      showToast('Please select a template', 'warning');
+      return;
+    }
+
+    const btn = $('#onb-discover-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '&#9203; Setting up...'; }
+
+    try {
+      const wizard = await this.api._post('/api/onboarding/start', {
+        organizationName: orgName,
+        organizationType: this._selectedOrgType || 'municipal',
+        sector: this._selectedSector || null,
+        manualEntry: true,
+      });
+      this._wizardId = wizard.id;
+      this._wizard = wizard;
+
+      // Build agents from template departments
+      const departments = this._selectedTemplate.departments || [];
+      this._agents = departments.map((dept, i) => {
+        const name = typeof dept === 'string' ? dept : dept.name;
+        const domain = (typeof dept === 'object' && dept.domain) ? dept.domain : 'General';
+        return {
+          id: `tmpl-${i}`,
+          name,
+          title: 'Department',
+          enabled: true,
+          domain,
+          director: '',
+          suggestedTemplate: '',
+          url: '',
+        };
+      });
+
+      // Store compliance info from template
+      this._selectedIndustry = this._selectedTemplate.sector;
+
+      this._discovery = {
+        status: 'completed',
+        pagesCrawled: 0,
+        departments: this._agents,
+        sourceUrl: `Template: ${this._selectedTemplate.name}`,
+      };
+
+      const history = $('#onb-history');
+      if (history) history.style.display = 'none';
+
+      showToast(`Loaded ${departments.length} departments from "${this._selectedTemplate.name}"`, 'success');
+      this._setStep('select');
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '&#10004; Use Template'; }
+    }
   }
 
   /* ═══════════════════ Step 4: Discovering (async polling) ═════════ */
@@ -501,6 +608,7 @@ export class OnboardingPage {
         organizationName: orgName,
         websiteUrl: url,
         organizationType: this._selectedOrgType || 'municipal',
+        sector: this._selectedSector || null,
         industry: this._selectedIndustry || 'government',
       });
       this._wizardId = wizard.id;
@@ -547,6 +655,7 @@ export class OnboardingPage {
       const wizard = await this.api._post('/api/onboarding/start', {
         organizationName: orgName,
         organizationType: this._selectedOrgType || 'municipal',
+        sector: this._selectedSector || null,
         industry: this._selectedIndustry || 'government',
         manualEntry: true,
       });
@@ -747,7 +856,7 @@ export class OnboardingPage {
             </p>
           </div>
           <div style="display:flex; gap:0.5rem; align-items:center">
-            <span class="onb-badge onb-badge-industry" style="font-size:0.75rem">${enabledCount} of ${agents.length} selected</span>
+            <span class="onb-badge onb-badge-industry" id="onb-select-count" style="font-size:0.75rem">${enabledCount} of ${agents.length} selected</span>
           </div>
         </div>
 
@@ -988,7 +1097,7 @@ export class OnboardingPage {
 
   /** Update the "X of Y selected" badge without full re-render */
   _updateSelectCount() {
-    const countBadge = document.querySelector('.onb-badge-industry');
+    const countBadge = $('#onb-select-count');
     const btn = $('#onb-to-linkgpts');
     const enabledCount = this._agents.filter(a => a.enabled).length;
     if (countBadge) countBadge.textContent = `${enabledCount} of ${this._agents.length} selected`;
@@ -1128,6 +1237,10 @@ export class OnboardingPage {
     const industry   = INDUSTRIES.find(i => i.value === this._selectedIndustry);
     const orgType    = ORG_TYPES.find(o => o.value === this._selectedOrgType);
     const linkedCount = enabled.filter(a => this._gptLinks[a.id]).length;
+    // Use template compliance when available, fall back to industry badges
+    const compliance = this._selectedTemplate?.governance?.compliance || (industry ? industry.badges : []);
+    const sectorMeta = this._sectors.find(s => s.id === this._selectedSector);
+    const sectorName = sectorMeta ? sectorMeta.name : (industry ? industry.title : '');
 
     const content = $('#onb-content');
     content.innerHTML = `
@@ -1151,7 +1264,7 @@ export class OnboardingPage {
           <div style="font-size:0.75rem; color:var(--text-muted)">Data Portals</div>
         </div>
         <div class="glass-card" style="padding:1.25rem; text-align:center">
-          <div style="font-size:2.25rem; font-weight:700; color:#8b5cf6">${industry ? industry.badges.length : 0}</div>
+          <div style="font-size:2.25rem; font-weight:700; color:#8b5cf6">${compliance.length}</div>
           <div style="font-size:0.75rem; color:var(--text-muted)">Compliance Rules</div>
         </div>
       </div>
@@ -1162,7 +1275,7 @@ export class OnboardingPage {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; font-size:0.85rem">
           <div><span style="color:var(--text-muted)">Organization:</span> <strong>${escapeHtml(orgName)}</strong></div>
           <div><span style="color:var(--text-muted)">Type:</span> <strong>${escapeHtml(orgType ? orgType.title : (this._wizard?.organization_type || ''))}</strong></div>
-          <div><span style="color:var(--text-muted)">Industry:</span> <strong>${escapeHtml(industry ? industry.title : '')}</strong></div>
+          <div><span style="color:var(--text-muted)">Sector:</span> <strong>${escapeHtml(sectorName || (industry ? industry.title : ''))}</strong></div>
           <div><span style="color:var(--text-muted)">GPTs Linked:</span> <strong>${linkedCount} of ${enabled.length}</strong></div>
           ${discovery.municipality ? `<div><span style="color:var(--text-muted)">City:</span> <strong>${escapeHtml(discovery.municipality.name || '')}</strong></div>` : ''}
           ${discovery.executive ? `<div><span style="color:var(--text-muted)">Executive:</span> <strong>${escapeHtml(discovery.executive.name || '')}</strong></div>` : ''}
@@ -1170,14 +1283,14 @@ export class OnboardingPage {
       </div>
 
       <!-- Compliance Notice -->
-      ${industry && industry.badges.length > 0 ? `
+      ${compliance.length > 0 ? `
       <div class="glass-card" style="padding:1.25rem; margin-bottom:1rem; border:1px solid rgba(245,158,11,0.3); background:rgba(245,158,11,0.04)">
         <h4 style="margin:0 0 0.5rem; font-size:0.9rem; color:#d97706">&#128274; Compliance Guardrails</h4>
         <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 0.75rem">
           The following compliance frameworks will be enforced on all deployed agents:
         </p>
         <div style="display:flex; flex-wrap:wrap; gap:0.35rem">
-          ${industry.badges.map(b => `<span class="onb-badge onb-badge-compliance" style="font-size:0.8rem; padding:0.25rem 0.75rem">${escapeHtml(b)}</span>`).join('')}
+          ${compliance.map(b => `<span class="onb-badge onb-badge-compliance" style="font-size:0.8rem; padding:0.25rem 0.75rem">${escapeHtml(b)}</span>`).join('')}
         </div>
       </div>
       ` : ''}
@@ -1248,6 +1361,9 @@ export class OnboardingPage {
   _renderDeployStep() {
     const enabled = this._agents.filter(a => a.enabled);
     const industry = INDUSTRIES.find(i => i.value === this._selectedIndustry);
+    const compliance = this._selectedTemplate?.governance?.compliance || (industry ? industry.badges : []);
+    const sectorMeta = this._sectors.find(s => s.id === this._selectedSector);
+    const templateName = this._selectedTemplate?.name || (sectorMeta ? sectorMeta.name : (industry ? industry.title : 'your selected'));
     const content = $('#onb-content');
 
     content.innerHTML = `
@@ -1262,9 +1378,9 @@ export class OnboardingPage {
               Successfully deployed <strong>${enabled.length}</strong> agent${enabled.length !== 1 ? 's' : ''} for
               <strong>${escapeHtml(this._wizard?.organization_name || '')}</strong>
             </p>
-            ${industry && industry.badges.length > 0 ? `
+            ${compliance.length > 0 ? `
               <div style="margin-top:0.75rem; display:flex; justify-content:center; flex-wrap:wrap; gap:0.35rem">
-                ${industry.badges.map(b => `<span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; background:rgba(255,255,255,0.2); color:#fff">${escapeHtml(b)}</span>`).join('')}
+                ${compliance.map(b => `<span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.7rem; font-weight:600; background:rgba(255,255,255,0.2); color:#fff">${escapeHtml(b)}</span>`).join('')}
               </div>
             ` : ''}
           </div>
@@ -1274,7 +1390,7 @@ export class OnboardingPage {
           <div style="padding:1rem; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:8px; margin-bottom:1.5rem">
             <div style="font-weight:600; margin-bottom:0.25rem">What happens next?</div>
             <p style="margin:0; font-size:0.85rem; color:var(--text-muted)">
-              Your agents are now active and configured with ${industry ? industry.title : 'your selected'} compliance guardrails.
+              Your agents are now active and configured with ${escapeHtml(templateName)} compliance guardrails.
               Visit the Agents page to manage them, check approval queues, or start chatting to test routing.
             </p>
           </div>
@@ -1290,7 +1406,7 @@ export class OnboardingPage {
               <div style="font-size:0.7rem; color:var(--text-muted)">GPTs Linked</div>
             </div>
             <div class="glass-card" style="padding:0.75rem; text-align:center">
-              <div style="font-size:1.5rem; font-weight:700; color:#8b5cf6">${industry ? industry.badges.length : 0}</div>
+              <div style="font-size:1.5rem; font-weight:700; color:#8b5cf6">${compliance.length}</div>
               <div style="font-size:0.7rem; color:var(--text-muted)">Guardrails</div>
             </div>
           </div>
@@ -1328,7 +1444,11 @@ export class OnboardingPage {
       this._selectedIndustry = null;
       this._sourceMode      = 'website';
       this._manualDepts     = '';
-      this._setStep('orgtype');
+      this._selectedSector  = null;
+      this._sectorSearch    = '';
+      this._sectorTemplates = [];
+      this._selectedTemplate = null;
+      this._setStep('source');
       this._loadHistory();
     });
   }
@@ -1406,9 +1526,12 @@ export class OnboardingPage {
       this._wizardId = wizard.id;
       this._wizard   = wizard;
 
-      // Restore org type and industry if stored
-      if (wizard.organization_type) this._selectedOrgType = wizard.organization_type;
-      if (wizard.industry)          this._selectedIndustry = wizard.industry;
+      // Restore org type, sector and industry if stored
+      if (wizard.organization_type) {
+        this._selectedOrgType = wizard.organization_type;
+        this._selectedSector = wizard.organization_type;
+      }
+      if (wizard.industry) this._selectedIndustry = wizard.industry;
 
       // Build agents from wizard departments
       this._agents = (wizard.departments || []).map(d => ({
