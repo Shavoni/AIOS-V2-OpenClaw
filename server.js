@@ -34,7 +34,7 @@ async function main() {
   app.use(cors({
     origin: process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
-      : ['http://127.0.0.1:3000', 'http://localhost:3000'],
+      : true,  // Allow all origins in development
     credentials: true,
   }));
   app.use(morgan('dev'));
@@ -118,9 +118,10 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  server.listen(PORT, '127.0.0.1', () => {
+  const HOST = process.env.HOST || '0.0.0.0';
+  server.listen(PORT, HOST, () => {
     console.log(`\n  AIOS V2 — ${aios.agent.identity.getSummary()}`);
-    console.log(`  Server:    http://127.0.0.1:${PORT}`);
+    console.log(`  Server:    http://${HOST}:${PORT}`);
     console.log(`  Skills:    ${aios.skills.getSkillCount()} loaded`);
     console.log(`  Providers: ${aios.router.getProviderStatus().length} configured`);
     console.log(`  Pages:     11 (Dashboard, Chat, Agents, Skills, Memory, Models, Approvals, Metrics, Audit, Settings, Onboarding)`);
