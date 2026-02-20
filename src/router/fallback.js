@@ -13,7 +13,9 @@ class FallbackChain {
       if (lastFail && now - lastFail < 60000) continue;
 
       try {
-        const result = await provider.complete(messages, options);
+        // Use provider's default model if the requested model isn't native to this provider
+        const fallbackOptions = { ...options, model: options.model || provider.defaultModel };
+        const result = await provider.complete(messages, fallbackOptions);
         // Clear failure record on success so provider is immediately available next time
         this._failures.delete(provider.id);
         return { ...result, attemptCount: errors.length + 1, failedProviders: errors.map((e) => e.id) };
@@ -35,7 +37,8 @@ class FallbackChain {
       if (lastFail && now - lastFail < 60000) continue;
 
       try {
-        const stream = provider.completeStream(messages, options);
+        const fallbackOptions = { ...options, model: options.model || provider.defaultModel };
+        const stream = provider.completeStream(messages, fallbackOptions);
         const first = await stream.next();
         if (first.done) continue;
 

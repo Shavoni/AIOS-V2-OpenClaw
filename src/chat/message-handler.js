@@ -84,8 +84,10 @@ class MessageHandler {
 
     // 8. Route to LLM
     const agentProfile = this.agent.getProfile(profile);
+    // Allow explicit model selection from request, fall back to agent profile
+    const selectedModel = (options.model && options.model !== 'auto') ? options.model : agentProfile.model;
     const result = await this.router.route(messages, {
-      model: agentProfile.model,
+      model: selectedModel,
       temperature: agentProfile.temperature,
       maxTokens: agentProfile.maxTokens,
       localOnly: decision.providerConstraints.localOnly,
@@ -201,6 +203,7 @@ class MessageHandler {
     ];
 
     const agentProfile = this.agent.getProfile(profile);
+    const selectedModel = (options.model && options.model !== 'auto') ? options.model : agentProfile.model;
     let fullText = "";
 
     if (decision.hitlMode === "DRAFT") {
@@ -210,7 +213,7 @@ class MessageHandler {
     }
 
     const stream = this.router.routeStream(messages, {
-      model: agentProfile.model,
+      model: selectedModel,
       temperature: agentProfile.temperature,
       maxTokens: agentProfile.maxTokens,
     });

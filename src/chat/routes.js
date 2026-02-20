@@ -12,18 +12,18 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   api.post("/chat", async (req, res) => {
     try {
       const sessionId = req.body.sessionId || req.body.conversationId;
-      const { message, profile, stream } = req.body;
+      const { message, profile, stream, model } = req.body;
       if (!sessionId || !message) {
         return res.status(400).json({ error: "sessionId and message required" });
       }
 
       // If client requests streaming via body flag, redirect to SSE
       if (stream) {
-        const streamIter = handler.handleStream(sessionId, message, { profile });
+        const streamIter = handler.handleStream(sessionId, message, { profile, model });
         return streamToSSE(res, streamIter, { sessionId, profile });
       }
 
-      const result = await handler.handle(sessionId, message, { profile });
+      const result = await handler.handle(sessionId, message, { profile, model });
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -34,12 +34,12 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   api.post("/chat/stream", async (req, res) => {
     try {
       const sessionId = req.body.sessionId || req.body.conversationId;
-      const { message, profile } = req.body;
+      const { message, profile, model } = req.body;
       if (!sessionId || !message) {
         return res.status(400).json({ error: "sessionId and message required" });
       }
 
-      const stream = handler.handleStream(sessionId, message, { profile });
+      const stream = handler.handleStream(sessionId, message, { profile, model });
       streamToSSE(res, stream, { sessionId, profile });
     } catch (err) {
       res.status(500).json({ error: err.message });

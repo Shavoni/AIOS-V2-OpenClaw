@@ -34,7 +34,7 @@ class ModelRouter {
   async route(messages, options = {}) {
     const model = options.model || PROFILE_MODEL_MAP[options.profile] || PROFILE_MODEL_MAP.main;
 
-    // Try direct model lookup
+    // Try direct model lookup (model belongs to a specific provider)
     const direct = this._modelIndex.get(model);
     if (direct && direct.healthy) {
       try {
@@ -42,8 +42,8 @@ class ModelRouter {
       } catch (_) {}
     }
 
-    // Fallback chain
-    return this.fallback.execute(messages, { ...options, model });
+    // Fallback chain — don't pass a foreign model, let each provider use its default
+    return this.fallback.execute(messages, { ...options, model: undefined });
   }
 
   async *routeStream(messages, options = {}) {
@@ -59,7 +59,8 @@ class ModelRouter {
       } catch (_) {}
     }
 
-    for await (const chunk of this.fallback.executeStream(messages, { ...options, model })) {
+    // Fallback chain — don't pass a foreign model, let each provider use its default
+    for await (const chunk of this.fallback.executeStream(messages, { ...options, model: undefined })) {
       yield chunk;
     }
   }
