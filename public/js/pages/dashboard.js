@@ -204,10 +204,10 @@ export class DashboardPage {
     const errors = s.errors || 0;
 
     const kpis = [
-      { label: 'Total Requests', value: totalQueries.toLocaleString(), trend: '+12,340 today', trendDir: 'up', color: 'var(--accent-blue)', icon: ICONS.requests },
+      { label: 'Total Requests', value: totalQueries.toLocaleString(), trend: totalQueries > 0 ? `${this._period}d window` : 'No data yet', trendDir: totalQueries > 0 ? 'up' : 'neutral', color: 'var(--accent-blue)', icon: ICONS.requests },
       { label: 'Active Agents', value: String(uniqueUsers || health.skills || 0), trend: 'Deployed', trendDir: 'neutral', color: 'var(--accent-purple)', icon: ICONS.users },
       { label: 'Avg Response', value: avgLatency ? `${avgLatency}ms` : '--', trend: avgLatency < 500 ? 'Within target' : 'Above 500ms', trendDir: avgLatency < 500 ? 'up' : 'down', color: 'var(--accent-green)', icon: ICONS.clock },
-      { label: 'Cost Savings', value: `$${totalCost.toFixed(2)}`, trend: '40-70% savings', trendDir: 'up', color: '#14b8a6', icon: ICONS.savings },
+      { label: 'Total Cost', value: `$${totalCost.toFixed(2)}`, trend: totalCost > 0 ? `${this._period}d spend` : 'No spend yet', trendDir: 'neutral', color: '#14b8a6', icon: ICONS.savings },
       { label: 'Success Rate', value: `${successRate}%`, trend: successRate >= 95 ? 'Excellent' : 'Needs attention', trendDir: successRate >= 95 ? 'up' : 'down', color: 'var(--accent-green)', icon: ICONS.check },
       { label: 'Escalations', value: String(escalations), trend: escalations === 0 ? 'None' : 'Active', trendDir: escalations === 0 ? 'up' : 'down', color: 'var(--accent-orange)', icon: ICONS.alert },
       { label: 'Guardrails', value: String(errors), trend: errors === 0 ? 'All clear' : `${errors} triggered`, trendDir: errors === 0 ? 'up' : 'down', color: 'var(--accent-red)', icon: ICONS.shield },

@@ -81,6 +81,11 @@ async function main() {
     });
   });
 
+  // Health alias — frontend polls /api/health
+  app.get('/api/health', (req, res) => {
+    res.redirect(307, '/health');
+  });
+
   // API routes
   app.use('/api', aios.apiRoutes);
 

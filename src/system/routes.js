@@ -194,12 +194,59 @@ function createSystemRoutes(llmConfig, branding, canon, agentManager, db, markDi
 
   // ─── System Operations ────────────────────────────────────
 
+  // POST /api/system/providers — Save provider keys to openclaw.json and reload
+  router.post("/providers", (req, res) => {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const { providers } = req.body;
+      if (!providers || typeof providers !== "object") {
+        return res.status(400).json({ error: "providers object required" });
+      }
+
+      // Read existing openclaw.json
+      const configPath = path.resolve(__dirname, "../../.openclaw/openclaw.json");
+      let config = {};
+      if (fs.existsSync(configPath)) {
+        try { config = JSON.parse(fs.readFileSync(configPath, "utf-8")); } catch (_) {}
+      }
+
+      // Merge provider updates
+      if (!config.models) config.models = {};
+      if (!config.models.providers) config.models.providers = {};
+
+      for (const [id, updates] of Object.entries(providers)) {
+        if (!config.models.providers[id]) config.models.providers[id] = {};
+        Object.assign(config.models.providers[id], updates);
+      }
+
+      // Write back
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+
+      // Also persist to LLM config in DB
+      llmConfig.update({ providers });
+
+      res.json({ ok: true, message: "Providers saved. Restart server to reload." });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST /api/system/reset — Reset for new client
   router.post("/reset", (_req, res) => {
     try {
-      // Clear agents, settings, canon but keep schema
-      // This is intentionally limited to non-destructive operations
-      res.json({ ok: true, message: "System reset is not yet implemented for safety" });
+      // Clear agents, analytics, governance but keep schema and auth
+      db.run("DELETE FROM query_events");
+      db.run("DELETE FROM audit_events");
+      db.run("DELETE FROM approval_requests");
+      db.run("DELETE FROM policy_rules WHERE is_immutable = 0");
+      db.run("DELETE FROM agents WHERE is_router = 0");
+      db.run("DELETE FROM canon_documents");
+      db.run("DELETE FROM connectors");
+      db.run("DELETE FROM connector_events");
+      if (markDirty) markDirty();
+      res.json({ ok: true, message: "System reset complete. Core data cleared." });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

@@ -101,7 +101,20 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   // GET /api/providers — Provider status
   api.get("/providers", (_req, res) => {
     try {
-      res.json(router.getProviderStatus());
+      // Enrich provider status with models list from config
+      const statuses = router.getProviderStatus();
+      const enriched = statuses.map(s => {
+        const providerCfg = (config.providers || []).find(p => p.id === s.id);
+        return {
+          ...s,
+          name: s.id,
+          provider: s.id,
+          status: s.healthy ? 'online' : 'offline',
+          available: s.healthy,
+          models: providerCfg?.models || [],
+        };
+      });
+      res.json({ providers: enriched });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -131,7 +144,19 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   // GET /api/models → alias for GET /api/providers
   api.get("/models", (_req, res) => {
     try {
-      res.json(router.getProviderStatus());
+      const statuses = router.getProviderStatus();
+      const enriched = statuses.map(s => {
+        const providerCfg = (config.providers || []).find(p => p.id === s.id);
+        return {
+          ...s,
+          name: s.id,
+          provider: s.id,
+          status: s.healthy ? 'online' : 'offline',
+          available: s.healthy,
+          models: providerCfg?.models || [],
+        };
+      });
+      res.json({ providers: enriched });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -218,13 +243,17 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   api.post("/models/:name/test", async (req, res) => {
     try {
       const providerName = req.params.name;
-      const client = router.clients?.find(
-        (c) => c.name === providerName || c.id === providerName
-      );
+      // router.clients is a Map keyed by provider id
+      const client = router.getClient(providerName) ||
+        router.getClient(providerName.toLowerCase());
 
       if (client && typeof client.healthCheck === "function") {
         const result = await client.healthCheck();
-        return res.json({ status: "ok", provider: providerName, ...result });
+        if (result === true || (result && result.status === 'ok')) {
+          return res.json({ status: "ok", provider: providerName, connected: true });
+        } else {
+          return res.json({ status: "error", provider: providerName, error: client.lastError || "Health check failed" });
+        }
       }
 
       // Fallback: check provider status

@@ -134,11 +134,6 @@ export class ChatPage {
               <div class="chat-input-meta">
                 <select class="model-selector" id="model-selector">
                   <option value="auto">Auto (Recommended)</option>
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="gemini">Gemini</option>
-                  <option value="lmstudio">LM Studio</option>
                 </select>
                 <span class="char-count" id="char-count"></span>
               </div>
@@ -152,6 +147,7 @@ export class ChatPage {
     this._bindEvents(mount);
     this._loadConversations();
     this._loadAgentDirectory();
+    this._populateModelSelector();
     this._checkQuickMessage();
 
     return () => this._cleanup();
@@ -275,6 +271,54 @@ export class ChatPage {
         textarea.value = msg;
         setTimeout(() => this._sendMessage(), 300);
       }
+    }
+  }
+
+  // =========================================================================
+  //  Dynamic Model Selector
+  // =========================================================================
+
+  async _populateModelSelector() {
+    const select = document.getElementById('model-selector');
+    if (!select) return;
+
+    try {
+      const data = await this.api._get('/api/providers');
+      const providers = data.providers || data || [];
+      const providerArr = Array.isArray(providers) ? providers : Object.values(providers);
+
+      for (const p of providerArr) {
+        const name = p.name || p.id || p.provider || 'unknown';
+        const models = p.models || [];
+
+        if (models.length > 0) {
+          // Add an optgroup per provider
+          const group = document.createElement('optgroup');
+          group.label = name.charAt(0).toUpperCase() + name.slice(1);
+          for (const m of models) {
+            const modelName = typeof m === 'string' ? m : (m.name || m.id || '');
+            const opt = document.createElement('option');
+            opt.value = modelName;
+            opt.textContent = modelName;
+            group.appendChild(opt);
+          }
+          select.appendChild(group);
+        } else {
+          // Just add the provider as a single option
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+          select.appendChild(opt);
+        }
+      }
+    } catch (_) {
+      // Fallback: add static options
+      ['openai', 'anthropic', 'gemini', 'ollama'].forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+        select.appendChild(opt);
+      });
     }
   }
 

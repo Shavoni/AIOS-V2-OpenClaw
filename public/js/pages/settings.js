@@ -216,8 +216,13 @@ export class SettingsPage {
           if (val && val !== '********') updates.providers[input.dataset.provider] = { apiKey: val };
         });
         try {
+          // Save to DB (LLM config)
           await this.api._post('/api/system/llm-config', updates);
-          showToast('LLM config saved', 'success');
+          // Also persist to openclaw.json for provider reload
+          if (Object.keys(updates.providers).length > 0) {
+            await this.api._post('/api/system/providers', { providers: updates.providers });
+          }
+          showToast('LLM config saved — restart server to activate new providers', 'success');
         } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }
       });
     } catch (err) {
@@ -435,9 +440,13 @@ export class SettingsPage {
       } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }
     });
 
-    document.getElementById('system-reset')?.addEventListener('click', () => {
-      if (!confirm('WARNING: This will permanently delete all agents, rules, and analytics data. Type "RESET" to confirm.')) return;
-      showToast('System reset is not implemented in this build', 'warning');
+    document.getElementById('system-reset')?.addEventListener('click', async () => {
+      const answer = prompt('WARNING: This will permanently delete all agents, rules, and analytics data. Type RESET to confirm.');
+      if (answer !== 'RESET') { showToast('Reset cancelled', 'info'); return; }
+      try {
+        const result = await this.api._post('/api/system/reset', {});
+        showToast(result.message || 'System reset complete', 'success');
+      } catch (err) { showToast(`Reset failed: ${err.message}`, 'error'); }
     });
   }
 

@@ -129,7 +129,30 @@ async function createApp() {
   const authMiddleware = createAuthMiddleware(authService);
 
   // 10. Embeddings + RAG pipeline
-  const embeddingConfig = config.embedding || null;
+  // Auto-detect embedding config from openclaw.json or environment
+  let embeddingConfig = config.embedding || null;
+  if (!embeddingConfig && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-proj-your-key-here') {
+    embeddingConfig = {
+      type: 'openai',
+      apiKey: process.env.OPENAI_API_KEY,
+      model: 'text-embedding-3-small',
+    };
+  }
+  // Also check openclaw.json agents.defaults.memorySearch
+  if (!embeddingConfig) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const ocPath = path.join(config.projectRoot, '.openclaw', 'openclaw.json');
+      if (fs.existsSync(ocPath)) {
+        const oc = JSON.parse(fs.readFileSync(ocPath, 'utf-8'));
+        const msKey = oc.agents?.defaults?.memorySearch?.remote?.apiKey;
+        if (msKey && msKey.startsWith('sk-')) {
+          embeddingConfig = { type: 'openai', apiKey: msKey, model: oc.agents?.defaults?.memorySearch?.remote?.model || 'text-embedding-3-small' };
+        }
+      }
+    } catch (_) { /* non-critical */ }
+  }
   const embedder = createEmbeddingProvider(embeddingConfig);
   const vectorStore = embedder ? new VectorStore(db, markDirty) : null;
   const rag = new RAGPipeline(agentManagerService, canon, { embedder, vectorStore });
