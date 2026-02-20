@@ -135,14 +135,17 @@ function initSocket() {
       ...(prev || []).slice(0, 49),
     ]);
     state.invalidateCache('approvals');
+    state.set('pendingApprovals', (state.get('pendingApprovals') || 0) + 1);
     state.set('_hitl_event', { type: 'created', data: approval });
   });
 
   socket.on('hitl:approved', (approval) => {
+    state.set('pendingApprovals', Math.max(0, (state.get('pendingApprovals') || 1) - 1));
     state.set('_hitl_event', { type: 'approved', data: approval });
   });
 
   socket.on('hitl:rejected', (approval) => {
+    state.set('pendingApprovals', Math.max(0, (state.get('pendingApprovals') || 1) - 1));
     state.set('_hitl_event', { type: 'rejected', data: approval });
   });
 
@@ -183,7 +186,16 @@ async function boot() {
 
   router.start();
   api.startHealthPolling();
-  sidebar.render(); // Re-render with user info
+
+  // Fetch pending approvals count for sidebar badge
+  try {
+    const pendingAgents = await api._get('/api/system/pending-agents');
+    const pendingHITL = await api._get('/api/hitl/pending').catch(() => []);
+    const totalPending = (Array.isArray(pendingAgents) ? pendingAgents.length : 0) + (Array.isArray(pendingHITL) ? pendingHITL.length : 0);
+    state.set('pendingApprovals', totalPending);
+  } catch { /* non-critical */ }
+
+  sidebar.render(); // Re-render with user info and badge counts
 
   console.log('AIOS V2 frontend initialized — 12 pages, real-time WebSocket enabled');
 }

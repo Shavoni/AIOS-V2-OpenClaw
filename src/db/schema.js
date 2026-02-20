@@ -392,6 +392,10 @@ const SCHEMA = [
 
 // Safe column additions for existing databases (ALTER TABLE is a no-op if column exists)
 const MIGRATIONS = [
+  // Agents approval columns (added for HITL agent approval flow)
+  { table: "agents", column: "approved_by", def: "TEXT" },
+  { table: "agents", column: "approved_at", def: "TEXT" },
+  { table: "agents", column: "rejection_reason", def: "TEXT" },
   // Agents branding columns (added in PR #7)
   { table: "agents", column: "logo_url", def: "TEXT DEFAULT ''" },
   { table: "agents", column: "brand_color", def: "TEXT DEFAULT ''" },

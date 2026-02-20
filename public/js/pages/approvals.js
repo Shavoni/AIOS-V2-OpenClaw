@@ -164,6 +164,27 @@ export class ApprovalsPage {
 
   async _fetchData() {
     await Promise.all([this._fetchSummary(), this._fetchQueue()]);
+
+    // Auto-switch to Pending Agents tab if there are pending agents but no response approvals
+    if (this._approvals.length === 0) {
+      try {
+        const pendingAgents = await this.api._get('/api/system/pending-agents');
+        if (pendingAgents && pendingAgents.length > 0) {
+          // Simulate clicking the Pending Agents tab
+          this._activeTab = 'agents';
+          const responsesTab = document.getElementById('tab-responses');
+          const agentsTab = document.getElementById('tab-agents');
+          if (responsesTab) responsesTab.style.display = 'none';
+          if (agentsTab) agentsTab.style.display = '';
+          // Update tab visual state
+          const tabBtns = document.querySelectorAll('#approval-tabs-container .tab-btn');
+          tabBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.textContent.trim() === 'Pending Agents');
+          });
+          this._fetchPendingAgents();
+        }
+      } catch { /* non-critical */ }
+    }
   }
 
   async _fetchSummary() {

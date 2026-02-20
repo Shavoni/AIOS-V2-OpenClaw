@@ -207,6 +207,14 @@ export class AgentsPage {
         <div class="agent-card-caps">
           ${(agent.capabilities || []).slice(0, 4).map(c => `<span class="tag tag--${domain === 'HR' ? 'purple' : domain === 'Finance' ? 'green' : domain === 'Legal' ? 'blue' : 'green'}">${escapeHtml(c)}</span>`).join('')}
         </div>
+        ${agent.status === 'pending' ? `
+        <div class="agent-pending-banner" style="margin-top:var(--space-3);padding:var(--space-3);border-radius:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)">
+          <span style="color:var(--accent-yellow);font-size:var(--font-size-sm);font-weight:600">⚠ Awaiting Approval</span>
+          <div style="display:flex;gap:var(--space-2)">
+            <button class="btn btn-sm btn-primary agent-quick-approve" data-id="${agent.id}" style="font-size:11px;padding:4px 10px">Approve</button>
+            <button class="btn btn-sm btn-ghost agent-quick-reject" data-id="${agent.id}" style="font-size:11px;padding:4px 10px;color:var(--accent-red)">Reject</button>
+          </div>
+        </div>` : ''}
         <div class="agent-card-kb" id="agent-kb-${agent.id}" style="margin-top:var(--space-2);font-size:var(--font-size-xs);color:var(--text-muted)">
           <span class="spinner spinner--xs" style="width:10px;height:10px"></span>
         </div>
@@ -232,6 +240,31 @@ export class AgentsPage {
       }
 
       grid.appendChild(card);
+
+      // Bind quick approve/reject for pending agents
+      card.querySelectorAll('.agent-quick-approve').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            await this.api._post(`/api/system/pending-agents/${btn.dataset.id}/approve`, { reviewer_id: 'admin' });
+            showToast('Agent approved and activated!', 'success');
+            if (this.state) this.state.set('pendingApprovals', Math.max(0, (this.state.get('pendingApprovals') || 1) - 1));
+            this._fetchAgents();
+          } catch (err) { showToast(`Approve failed: ${err.message}`, 'error'); }
+        });
+      });
+      card.querySelectorAll('.agent-quick-reject').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const reason = prompt('Rejection reason (optional):');
+          try {
+            await this.api._post(`/api/system/pending-agents/${btn.dataset.id}/reject`, { reviewer_id: 'admin', reason: reason || '' });
+            showToast('Agent rejected', 'success');
+            if (this.state) this.state.set('pendingApprovals', Math.max(0, (this.state.get('pendingApprovals') || 1) - 1));
+            this._fetchAgents();
+          } catch (err) { showToast(`Reject failed: ${err.message}`, 'error'); }
+        });
+      });
 
       // Async load KB stats for this agent
       this._loadAgentKBBadge(agent.id);
@@ -361,8 +394,14 @@ export class AgentsPage {
                 await self.api._put(`/api/agents/${agent.id}`, data);
                 showToast('Agent updated', 'success');
               } else {
-                await self.api._post('/api/agents', data);
-                showToast('Agent created', 'success');
+                const newAgent = await self.api._post('/api/agents', data);
+                showToast('Agent created — pending approval. Redirecting to Approvals...', 'success');
+                hideModal();
+                // Update sidebar badge
+                if (self.state) self.state.set('pendingApprovals', (self.state.get('pendingApprovals') || 0) + 1);
+                // Redirect to Approvals page after a brief delay
+                setTimeout(() => self.router.navigate('/approvals'), 800);
+                return;
               }
               hideModal();
               self._fetchAgents();
