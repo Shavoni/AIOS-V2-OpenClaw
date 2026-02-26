@@ -18,7 +18,11 @@ function createIntegrationRoutes(connectorService) {
   }));
 
   router.post("/", asyncHandler((req, res) => {
-    const connector = connectorService.createConnector(req.body);
+    const { name, type, description, auth_type, auth_config, agent_id } = req.body;
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: "name is required" });
+    }
+    const connector = connectorService.createConnector({ name, type, description, auth_type, auth_config, agent_id });
     res.status(201).json(connector);
   }));
 

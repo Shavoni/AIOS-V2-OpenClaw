@@ -12,18 +12,18 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   api.post("/chat", async (req, res) => {
     try {
       const sessionId = req.body.sessionId || req.body.conversationId;
-      const { message, profile, stream } = req.body;
+      const { message, profile, model, stream } = req.body;
       if (!sessionId || !message) {
         return res.status(400).json({ error: "sessionId and message required" });
       }
 
       // If client requests streaming via body flag, redirect to SSE
       if (stream) {
-        const streamIter = handler.handleStream(sessionId, message, { profile });
+        const streamIter = handler.handleStream(sessionId, message, { profile, model });
         return streamToSSE(res, streamIter, { sessionId, profile });
       }
 
-      const result = await handler.handle(sessionId, message, { profile });
+      const result = await handler.handle(sessionId, message, { profile, model });
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -34,12 +34,12 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   api.post("/chat/stream", async (req, res) => {
     try {
       const sessionId = req.body.sessionId || req.body.conversationId;
-      const { message, profile } = req.body;
+      const { message, profile, model } = req.body;
       if (!sessionId || !message) {
         return res.status(400).json({ error: "sessionId and message required" });
       }
 
-      const stream = handler.handleStream(sessionId, message, { profile });
+      const stream = handler.handleStream(sessionId, message, { profile, model });
       streamToSSE(res, stream, { sessionId, profile });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -218,9 +218,7 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
   api.post("/models/:name/test", async (req, res) => {
     try {
       const providerName = req.params.name;
-      const client = router.clients?.find(
-        (c) => c.name === providerName || c.id === providerName
-      );
+      const client = router.getClient(providerName);
 
       if (client && typeof client.healthCheck === "function") {
         const result = await client.healthCheck();
@@ -230,7 +228,7 @@ function createChatRoutes(handler, memory, skills, agent, router, config) {
       // Fallback: check provider status
       const statuses = router.getProviderStatus();
       const found = Array.isArray(statuses)
-        ? statuses.find((s) => (s.name || s.provider || "").toLowerCase() === providerName.toLowerCase())
+        ? statuses.find((s) => (s.id || s.name || s.provider || "").toLowerCase() === providerName.toLowerCase())
         : null;
 
       if (found) {

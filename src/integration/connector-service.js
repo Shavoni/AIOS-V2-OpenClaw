@@ -14,7 +14,6 @@ const ALLOWED_UPDATE_COLUMNS = new Set([
   "auth_type",
   "auth_config",
   "agent_id",
-  "status",
 ]);
 
 class ConnectorService {
@@ -24,7 +23,7 @@ class ConnectorService {
   }
 
   createConnector(config) {
-    const id = config.id || uuidv4();
+    const id = uuidv4();
     const now = new Date().toISOString();
 
     this.db.run(

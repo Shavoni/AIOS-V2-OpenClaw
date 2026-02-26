@@ -53,17 +53,17 @@ Guidelines:
 - If contradictions exist, present both sides fairly`;
 
       const result = await this.withTimeout(
-        this.router.chatCompletion({
-          messages: [
+        this.router.route(
+          [
             { role: "system", content: systemPrompt },
             { role: "user", content: `Generate a comprehensive research report for: ${query}` },
           ],
-          temperature: 0.4,
-        }),
+          { temperature: 0.4 }
+        ),
         "Synthesis"
       );
 
-      return { synthesis: result.content, tokenUsage: result.usage || {} };
+      return { synthesis: result.text, tokenUsage: result.usage || {} };
     } catch (error) {
       return { synthesis: `Synthesis failed: ${error.message}`, error: error.message, tokenUsage: {} };
     }

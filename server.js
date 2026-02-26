@@ -84,8 +84,15 @@ async function main() {
   // API routes
   app.use('/api', aios.apiRoutes);
 
-  // Serve frontend
-  app.use(express.static(path.join(__dirname, 'public')));
+  // Serve frontend (no-cache in dev mode to prevent stale JS/CSS)
+  app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.set('Pragma', 'no-cache');
+    },
+  }));
 
   // SPA fallback
   app.get('*', (_req, res) => {
@@ -118,7 +125,7 @@ async function main() {
     console.log(`  Server:    http://127.0.0.1:${PORT}`);
     console.log(`  Skills:    ${aios.skills.getSkillCount()} loaded`);
     console.log(`  Providers: ${aios.router.getProviderStatus().length} configured`);
-    console.log(`  Pages:     11 (Dashboard, Chat, Agents, Skills, Memory, Models, Approvals, Metrics, Audit, Settings, Onboarding)`);
+    console.log(`  Pages:     13 (Dashboard, Chat, Agents, Skills, Memory, Models, Approvals, Metrics, Audit, Settings, Onboarding, Integrations, Research)`);
     console.log(`  APIs:      auth, chat, agents, hitl, analytics, audit, governance, system, templates, onboarding`);
     console.log(`  Features:  JWT auth, rate limiting, auto-save, RAG pipeline, real-time WebSocket\n`);
   });

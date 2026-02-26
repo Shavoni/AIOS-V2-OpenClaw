@@ -1,61 +1,37 @@
-const { execFile } = require("child_process");
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
+const { execFile } = require("child_process");
 
 class SkillExecutor {
   constructor(skillsDir) {
     this.skillsDir = skillsDir;
   }
 
-  async execute(skillId, scriptName, args = []) {
-    // Sanitize inputs to prevent path traversal
-    const safeSkillId = path.basename(String(skillId));
-    const safeScriptName = path.basename(String(scriptName));
-    if (!safeSkillId || !safeScriptName) {
-      return { success: false, output: "", error: "Invalid skill or script name", duration: 0 };
+  async execute(skillId, scriptName, args = {}) {
+    const scriptsDir = path.join(this.skillsDir, skillId, "scripts");
+    if (!fs.existsSync(scriptsDir)) {
+      throw new Error(`No scripts directory for skill: ${skillId}`);
     }
 
-    const scriptDir = path.join(this.skillsDir, safeSkillId, "scripts");
-
-    // Verify scriptDir is within skillsDir
-    const resolvedDir = path.resolve(scriptDir);
-    const resolvedBase = path.resolve(this.skillsDir);
-    if (!resolvedDir.startsWith(resolvedBase + path.sep)) {
-      return { success: false, output: "", error: "Invalid skill path", duration: 0 };
+    const scriptPath = path.join(scriptsDir, scriptName);
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Script not found: ${scriptName} in skill ${skillId}`);
     }
 
-    if (!fs.existsSync(scriptDir)) {
-      return { success: false, output: "", error: "No scripts directory", duration: 0 };
+    // Security: ensure script is within the skills directory
+    const resolved = path.resolve(scriptPath);
+    if (!resolved.startsWith(path.resolve(this.skillsDir))) {
+      throw new Error("Script path traversal detected");
     }
 
-    const candidates = [
-      path.join(scriptDir, `${safeScriptName}.js`),
-      path.join(scriptDir, `${safeScriptName}.sh`),
-      path.join(scriptDir, safeScriptName),
-    ];
-
-    let scriptPath = null;
-    for (const c of candidates) {
-      if (fs.existsSync(c)) { scriptPath = c; break; }
-    }
-
-    if (!scriptPath) {
-      return { success: false, output: "", error: `Script not found: ${scriptName}`, duration: 0 };
-    }
-
-    const start = Date.now();
-    const ext = path.extname(scriptPath);
-    const cmd = ext === ".js" ? process.execPath : scriptPath;
-    const cmdArgs = ext === ".js" ? [scriptPath, ...args] : args;
-
-    return new Promise((resolve) => {
-      execFile(cmd, cmdArgs, { timeout: 30000, cwd: this.skillsDir }, (err, stdout, stderr) => {
-        const duration = Date.now() - start;
+    return new Promise((resolve, reject) => {
+      const env = { ...process.env, SKILL_ARGS: JSON.stringify(args) };
+      execFile(scriptPath, [], { env, timeout: 30000 }, (err, stdout, stderr) => {
         if (err) {
-          resolve({ success: false, output: stdout, error: stderr || err.message, duration });
-        } else {
-          resolve({ success: true, output: stdout, error: null, duration });
+          reject(new Error(`Script execution failed: ${err.message}`));
+          return;
         }
+        resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
       });
     });
   }

@@ -7,13 +7,19 @@ function validateEnv() {
   const warnings = [];
   const errors = [];
 
-  // Required for production
-  if (process.env.NODE_ENV === "production") {
+  // Security checks — enforce in all non-development environments
+  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
+  if (!isDev) {
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes("dev-secret")) {
-      errors.push("JWT_SECRET must be set to a secure value in production");
+      errors.push("JWT_SECRET must be set to a secure value in non-development environments");
     }
     if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.includes("dev-secret")) {
-      warnings.push("SESSION_SECRET should be set to a secure value in production");
+      errors.push("SESSION_SECRET must be set to a secure value in non-development environments");
+    }
+  } else {
+    // Even in dev, warn about missing secrets
+    if (!process.env.JWT_SECRET) {
+      warnings.push("JWT_SECRET not set — using auto-generated secret (tokens will not persist across restarts)");
     }
   }
 
@@ -52,7 +58,7 @@ function validateEnv() {
     for (const e of errors) {
       console.error(`  - ${e}`);
     }
-    if (process.env.NODE_ENV === "production") {
+    if (!isDev) {
       throw new Error(`Environment validation failed: ${errors.join("; ")}`);
     }
   }

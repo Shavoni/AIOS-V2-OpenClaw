@@ -33,14 +33,14 @@ describe("Deep Research Pipeline — Integration", () => {
     // 2. Scoring: claim extraction
     // 3. Synthesis: final report
     let callCount = 0;
-    mockRouter.chatCompletion.mockImplementation(async ({ messages }) => {
+    mockRouter.route.mockImplementation(async (messages) => {
       callCount++;
       const content = messages.map((m) => m.content).join(" ");
 
       // Decomposition call (system prompt mentions "decomposer")
       if (content.includes("decomposer")) {
         return {
-          content: JSON.stringify([
+          text: JSON.stringify([
             "What is quantum computing?",
             "How do qubits work?",
           ]),
@@ -50,7 +50,7 @@ describe("Deep Research Pipeline — Integration", () => {
       // Scoring/claim extraction call (system prompt mentions "claim extraction")
       if (content.includes("claim extraction")) {
         return {
-          content: JSON.stringify([
+          text: JSON.stringify([
             { text: "Quantum computers use qubits", supportingIndices: [0], contradictingIndices: [] },
           ]),
         };
@@ -58,7 +58,7 @@ describe("Deep Research Pipeline — Integration", () => {
 
       // Synthesis call
       return {
-        content: "# Quantum Computing Research Report\n\nQuantum computing uses qubits for computation.",
+        text: "# Quantum Computing Research Report\n\nQuantum computing uses qubits for computation.",
         usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
       };
     });
@@ -140,7 +140,7 @@ describe("Deep Research Pipeline — Integration", () => {
   test("failed pipeline emits research:failed event", async () => {
     // Override all LLM calls to fail — decomposition falls back to [query],
     // but scoring + synthesis will throw a fatal error from the processJob try/catch
-    mockRouter.chatCompletion.mockRejectedValue(new Error("All LLMs down"));
+    mockRouter.route.mockRejectedValue(new Error("All LLMs down"));
     // RAG also fails
     mockRag.search.search.mockImplementation(() => { throw new Error("RAG down"); });
     // Web also fails

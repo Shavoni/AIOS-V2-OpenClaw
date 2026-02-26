@@ -32,7 +32,7 @@ const config = {
 
   auth: {
     apiKeys: (process.env.API_KEYS || "").split(",").filter(Boolean),
-    sessionSecret: process.env.SESSION_SECRET || "aios-v2-dev-secret",
+    sessionSecret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "",
     sessionTtlMs: 24 * 60 * 60 * 1000,
   },
 

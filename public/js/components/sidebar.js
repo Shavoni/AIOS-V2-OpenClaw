@@ -127,6 +127,17 @@ export class Sidebar {
         </svg>`,
       },
       {
+        label: 'Research',
+        route: '/research',
+        badgeKey: null,
+        icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="9" r="5"/>
+          <line x1="13" y1="13" x2="18" y2="18"/>
+          <line x1="9" y1="6" x2="9" y2="12"/>
+          <line x1="6" y1="9" x2="12" y2="9"/>
+        </svg>`,
+      },
+      {
         label: 'Settings',
         route: '/settings',
         badgeKey: null,

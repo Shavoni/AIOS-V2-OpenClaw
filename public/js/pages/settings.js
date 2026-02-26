@@ -282,7 +282,7 @@ export class SettingsPage {
       container.querySelectorAll('.delete-rule-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           try {
-            await fetch(`/api/governance/rules/${btn.dataset.id}`, { method: 'DELETE' });
+            await this.api._delete(`/api/governance/rules/${btn.dataset.id}`);
             showToast('Rule deleted', 'success');
             this._loadTab('governance');
           } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }
@@ -337,7 +337,7 @@ export class SettingsPage {
       container.querySelectorAll('.delete-canon-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           try {
-            await fetch(`/api/system/canon/documents/${btn.dataset.id}`, { method: 'DELETE' });
+            await this.api._delete(`/api/system/canon/documents/${btn.dataset.id}`);
             showToast('Document removed', 'success');
             this._loadTab('canon');
           } catch (err) { showToast(`Failed: ${err.message}`, 'error'); }

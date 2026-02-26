@@ -36,7 +36,31 @@
       "Bash(bash -c 'ls \"\"/e/My AI Projects and Apps/AIOS-V2-OpenClaw-master/public/js/pages/\"\"')",
       "Bash(git -C \"E:/My AI Projects and Apps/AIOS-V2-OpenClaw-master\" status -u)",
       "Bash(git --version)",
-      "Bash(git -C \"E:/My AI Projects and Apps/AIOS-V2-OpenClaw-master\" status)"
+      "Bash(git -C \"E:/My AI Projects and Apps/AIOS-V2-OpenClaw-master\" status)",
+      "Bash(git push:*)",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__write_file",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(awk:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git branch:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git pull:*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "WebFetch(domain:open.manus.im)",
+      "Bash(source:*)",
+      "Bash(export MANUS_API_KEY=\"sk-MWRBY-_umtt43Xu7GJXaYf3o0lG9sCt3QorpdgxqHRTOMW1e79XXG7gFTNJKEMhGYYPyQwxRkRbY10A\")",
+      "Bash(MANUS_API_KEY=\"sk-MWRBY-_umtt43Xu7GJXaYf3o0lG9sCt3QorpdgxqHRTOMW1e79XXG7gFTNJKEMhGYYPyQwxRkRbY10A\" npx jest:*)",
+      "Bash(tee:*)",
+      "Bash(wc:*)",
+      "Bash(git log:*)",
+      "Bash(grep:*)"
     ]
   }
 }

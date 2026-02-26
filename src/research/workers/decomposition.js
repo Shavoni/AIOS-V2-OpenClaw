@@ -12,20 +12,20 @@ class DecompositionWorker extends BaseWorker {
   async execute(query) {
     try {
       const result = await this.withTimeout(
-        this.router.chatCompletion({
-          messages: [
+        this.router.route(
+          [
             {
               role: "system",
               content: `You are a research query decomposer. Given a user query, break it into 3-7 targeted sub-questions that together would fully answer the original query. Return ONLY a JSON array of strings. No explanation, no markdown, just the JSON array.`,
             },
             { role: "user", content: query },
           ],
-          temperature: 0.3,
-        }),
+          { temperature: 0.3 }
+        ),
         "Decomposition"
       );
 
-      const parsed = this.safeJsonParse(result.content, null);
+      const parsed = this.safeJsonParse(result.text, null);
       if (!Array.isArray(parsed)) return [query];
 
       const cleaned = parsed

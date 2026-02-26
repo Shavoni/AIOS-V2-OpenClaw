@@ -55,7 +55,6 @@ export class AgentsPage {
             </h1>
             <p class="page-subtitle">Manage AI department agents, knowledge bases, and routing</p>
             <div class="page-header-actions">
-              <button class="btn btn-sm" id="manus-ingest-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);margin-right:8px">MANUS Ingest</button>
               <button class="btn btn-sm" id="create-agent-btn" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.3)">+ New Agent</button>
             </div>
           </div>
@@ -90,8 +89,9 @@ export class AgentsPage {
     const createBtn = $('#create-agent-btn', mount);
     if (createBtn) createBtn.addEventListener('click', () => this._showCreateDialog());
 
-    const manusBtn = $('#manus-ingest-btn', mount);
-    if (manusBtn) manusBtn.addEventListener('click', () => this._showSessionIngestDialog());
+    // MANUS disabled — re-enable when ready
+    // const manusBtn = $('#manus-ingest-btn', mount);
+    // if (manusBtn) manusBtn.addEventListener('click', () => this._showSessionIngestDialog());
   }
 
   async _fetchAgents() {
@@ -220,7 +220,8 @@ export class AgentsPage {
             { label: 'Edit Agent', icon: ICONS.edit, onClick: () => this._showEditDialog(agent) },
             { label: 'Knowledge Base', icon: ICONS.book, onClick: () => this._showKnowledgeSheet(agent) },
             { label: 'Branding', icon: ICONS.edit, onClick: () => this._showBrandingDialog(agent) },
-            { label: 'MANUS Research', icon: ICONS.export, onClick: () => this._showManusDialog(agent) },
+            // MANUS disabled — re-enable when ready
+            // { label: 'MANUS Research', icon: ICONS.export, onClick: () => this._showManusDialog(agent) },
             { label: 'Test Query', icon: ICONS.test, onClick: () => this._showTestDialog(agent) },
             { divider: true },
             { label: agent.status === 'active' ? 'Disable' : 'Enable', icon: ICONS.toggle, onClick: () => this._toggleAgent(agent.id, agent.status === 'active' ? 'disable' : 'enable') },

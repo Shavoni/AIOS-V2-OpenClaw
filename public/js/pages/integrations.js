@@ -160,9 +160,7 @@ export class IntegrationsPage {
 
   async _fetchConnectors() {
     try {
-      const res = await fetch('/api/integrations');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this._connectors = await res.json();
+      this._connectors = await this.api._get('/api/integrations');
       this._onDataUpdated();
     } catch (err) {
       const grid = document.getElementById('integrations-grid');
@@ -328,7 +326,7 @@ export class IntegrationsPage {
         <div class="connector-card-footer">
           <span class="connector-health">
             <span class="${healthDot}" style="width:6px;height:6px"></span>
-            ${connector.health_status || 'unknown'}
+            ${escapeHtml(connector.health_status || 'unknown')}
           </span>
           <div class="connector-card-actions">
             ${connector.status === 'pending'
@@ -380,12 +378,7 @@ export class IntegrationsPage {
     }
 
     try {
-      const res = await fetch('/api/integrations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, type, description }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await this.api._post('/api/integrations', { name, type, description });
       showToast('Connector created', 'success');
       this._toggleAddForm(false);
       await this._fetchConnectors();
@@ -398,8 +391,7 @@ export class IntegrationsPage {
 
   async _approveConnector(id) {
     try {
-      const res = await fetch(`/api/integrations/${id}/approve`, { method: 'POST' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await this.api._post(`/api/integrations/${id}/approve`);
       showToast('Connector approved', 'success');
       await this._fetchConnectors();
     } catch (err) {
@@ -411,8 +403,7 @@ export class IntegrationsPage {
 
   async _suspendConnector(id) {
     try {
-      const res = await fetch(`/api/integrations/${id}/suspend`, { method: 'POST' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await this.api._post(`/api/integrations/${id}/suspend`);
       showToast('Connector suspended', 'success');
       await this._fetchConnectors();
     } catch (err) {

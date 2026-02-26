@@ -413,6 +413,24 @@
   color: var(--accent-blue);
 }
 
+.model-tag--selectable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.model-tag--selectable:hover {
+  background: var(--accent-blue);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+
+.fallback-chain-item:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
 .model-tag--default {
   background: var(--accent-green-dim);
   color: var(--accent-green);

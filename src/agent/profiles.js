@@ -2,7 +2,7 @@ const AGENT_PROFILES = {
   main: {
     id: "main",
     name: "General",
-    model: "gpt-4o",
+    model: "glm-4.7-flash",
     temperature: 0.7,
     maxTokens: 4096,
     description: "Balanced general-purpose assistant",
@@ -10,7 +10,7 @@ const AGENT_PROFILES = {
   reasoning: {
     id: "reasoning",
     name: "Reasoning",
-    model: "o3",
+    model: "deepseek-r1:8b",
     temperature: 0.3,
     maxTokens: 8192,
     description: "Deep reasoning and analysis",
@@ -18,7 +18,7 @@ const AGENT_PROFILES = {
   coding: {
     id: "coding",
     name: "Coding",
-    model: "claude-sonnet-4-5-20250514",
+    model: "qwen2.5:14b",
     temperature: 0.2,
     maxTokens: 8192,
     description: "Code generation and review",
@@ -26,7 +26,7 @@ const AGENT_PROFILES = {
   research: {
     id: "research",
     name: "Research",
-    model: "gemini-2.5-pro",
+    model: "glm-4.7-flash",
     temperature: 0.5,
     maxTokens: 8192,
     description: "Research and information synthesis",
@@ -34,7 +34,7 @@ const AGENT_PROFILES = {
   local: {
     id: "local",
     name: "Local",
-    model: "gpt-oss-120b",
+    model: "glm-4.7-flash",
     temperature: 0.7,
     maxTokens: 4096,
     description: "Local private model (no data leaves machine)",

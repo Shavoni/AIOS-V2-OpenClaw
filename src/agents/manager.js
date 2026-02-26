@@ -322,6 +322,16 @@ class AgentManagerService {
     return sources;
   }
 
+  listAllAutoRefreshSources() {
+    const stmt = this.db.prepare(
+      "SELECT * FROM web_sources WHERE auto_refresh = 1 ORDER BY last_refreshed ASC"
+    );
+    const sources = [];
+    while (stmt.step()) sources.push(stmt.getAsObject());
+    stmt.free();
+    return sources;
+  }
+
   deleteWebSource(id) {
     this.db.run("DELETE FROM web_sources WHERE id = ?", [id]);
     if (this.saveFn) this.saveFn();

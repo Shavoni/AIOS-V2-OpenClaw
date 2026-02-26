@@ -65,12 +65,19 @@ const { createEmbeddingProvider } = require('./rag/embedding-provider');
 const { VectorStore } = require('./rag/vector-store');
 const { EmbeddingClassifier } = require('./governance/embedding-classifier');
 
-// Document parsing + web crawling + MANUS ingest
+// Template system + dynamic governance registries
+const { TemplateRegistry } = require('./templates');
+const { createTemplateRoutes } = require('./templates/routes');
+const { DomainRegistry } = require('./governance/domain-registry');
+const { RiskSignalRegistry } = require('./governance/risk-signal-registry');
+
+// Document parsing + web crawling
 const { DocumentParser } = require('./rag/document-parser');
 const { WebCrawler } = require('./agents/web-crawler');
-const { ManusIngestService } = require('./agents/manus-ingest');
-const { ManusSessionIngest } = require('./agents/manus-session-ingest');
-const { createManusRoutes } = require('./agents/manus-routes');
+// MANUS disabled — re-enable when ready
+// const { ManusIngestService } = require('./agents/manus-ingest');
+// const { ManusSessionIngest } = require('./agents/manus-session-ingest');
+// const { createManusRoutes } = require('./agents/manus-routes');
 
 async function createApp() {
   // 1. Load config
@@ -95,14 +102,19 @@ async function createApp() {
   // 6. Memory system — use markDirty so auto-save batches writes
   const memory = new MemoryManager(db, markDirty, config.projectRoot);
 
-  // 7. Governance
-  const classifier = new IntentClassifier();
-  const riskDetector = new RiskDetector();
+  // 7. Governance — with dynamic domain + risk signal registries
+  const domainRegistry = new DomainRegistry();
+  const riskSignalRegistry = new RiskSignalRegistry();
+  const classifier = new IntentClassifier(domainRegistry);
+  const riskDetector = new RiskDetector(riskSignalRegistry);
   const engine = new GovernanceEngine(null, db, markDirty);
   engine.classifier = classifier;
   engine.riskDetector = riskDetector;
   engine.loadRules();
-  const governance = { classifier, riskDetector, engine };
+  const governance = { classifier, riskDetector, engine, domainRegistry, riskSignalRegistry };
+
+  // 7b. Template registry
+  const templateRegistry = new TemplateRegistry();
 
   // 8. Services (Phases 2-6) — all use markDirty for deferred persistence
   const agentManagerService = new AgentManagerService(db, markDirty);
@@ -113,10 +125,13 @@ async function createApp() {
   const branding = new BrandingService(db, markDirty, config.projectRoot);
   const canon = new CanonService(db, markDirty);
 
-  // 9. Onboarding wizard
+  // 9. Onboarding wizard — with template and governance registries
   const onboardingWizard = new OnboardingWizard(db, markDirty, {
     agentManager: agentManagerService,
     router,
+    templateRegistry,
+    domainRegistry,
+    riskSignalRegistry,
   });
 
   // 10. Auth service
@@ -142,7 +157,7 @@ async function createApp() {
   }
 
   // Embedding-enhanced classifier (initializes async, falls back to keyword until ready)
-  const embeddingClassifier = new EmbeddingClassifier(embedder);
+  const embeddingClassifier = new EmbeddingClassifier(embedder, domainRegistry);
   if (embedder) embeddingClassifier.initialize().catch(() => {});
 
   // 11. Report generator
@@ -174,15 +189,15 @@ async function createApp() {
   const documentParser = new DocumentParser();
   const webCrawler = new WebCrawler();
 
-  // MANUS ingest service + session ingest
-  const manusIngest = new ManusIngestService({ agentManager: agentManagerService, rag, documentParser });
-  const manusSessionIngest = new ManusSessionIngest({ agentManager: agentManagerService, rag, documentParser });
+  // MANUS disabled — re-enable when ready
+  // const manusIngest = new ManusIngestService({ agentManager: agentManagerService, rag, documentParser });
+  // const manusSessionIngest = new ManusSessionIngest({ agentManager: agentManagerService, rag, documentParser });
 
   // Skills management — operator access required
   apiRoutes.use('/skills', authRequired('operator'), createSkillRoutes(skills, config));
 
   // Agent management — operator access required
-  apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler, manusIngest }));
+  apiRoutes.use('/agents', authRequired('operator'), createAgentRoutes(agentManagerService, classifier, { rag, documentParser, webCrawler }));
 
   // HITL approvals — operator access required
   apiRoutes.use('/hitl', authRequired('operator'), createHITLRoutes(hitlManager));
@@ -216,6 +231,9 @@ async function createApp() {
 
   // System — admin access required
   apiRoutes.use('/system', authRequired('admin'), createSystemRoutes(llmConfig, branding, canon, agentManagerService, db, markDirty));
+
+  // Templates — public browsing (no auth required beyond authOptional)
+  apiRoutes.use('/templates', createTemplateRoutes(templateRegistry));
 
   // Onboarding — operator access required
   apiRoutes.use('/onboarding', authRequired('operator'), createOnboardingRoutes(onboardingWizard));
@@ -272,14 +290,14 @@ async function createApp() {
   });
   apiRoutes.use('/research', authRequired('operator'), createResearchRoutes(researchQueueService, researchManager));
 
-  // MANUS automation — operator access required
-  apiRoutes.use('/manus', authRequired('operator'), createManusRoutes({
-    manusIngest,
-    sessionIngest: manusSessionIngest,
-    agentManager: agentManagerService,
-    rag,
-    eventBus,
-  }));
+  // MANUS disabled — re-enable when ready
+  // apiRoutes.use('/manus', authRequired('operator'), createManusRoutes({
+  //   manusIngest,
+  //   sessionIngest: manusSessionIngest,
+  //   agentManager: agentManagerService,
+  //   rag,
+  //   eventBus,
+  // }));
 
   // Auto-populate agent KB from completed research jobs
   eventBus.on('research:completed', ({ jobId }) => {
@@ -293,11 +311,29 @@ async function createApp() {
     } catch { /* non-critical — don't break the pipeline */ }
   });
 
-  console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research, manus`);
+  console.log(`Routes mounted: auth, chat, agents, hitl, analytics, audit, governance, system, rag, onboarding, gdpr, integrations, research, templates`);
+  console.log(`Templates: ${templateRegistry.getTemplateCount()} across ${templateRegistry.listSectors().length} sectors`);
+
+  // ─── Web Source Auto-Refresh Scheduler ──────────────────────
+  const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+  const refreshTimer = setInterval(async () => {
+    try {
+      const sources = agentManagerService.listAllAutoRefreshSources();
+      if (sources.length === 0) return;
+      const stats = await webCrawler.refreshAllStale(sources, { rag, agentManager: agentManagerService });
+      if (stats.refreshed > 0) {
+        console.log(`[auto-refresh] ${stats.refreshed} sources refreshed, ${stats.skipped} skipped, ${stats.errors} errors`);
+      }
+    } catch (err) {
+      console.warn('[auto-refresh] scheduler error:', err.message);
+    }
+  }, REFRESH_INTERVAL_MS);
+  refreshTimer.unref();
 
   // Cleanup hook
   const shutdown = () => {
     console.log('Shutting down...');
+    clearInterval(refreshTimer);
     stopAutoSave();
     authService.destroy();
     closeDb();
@@ -312,6 +348,7 @@ async function createApp() {
     authService, authMiddleware,
     agentManagerService, hitlManager, analyticsManager, auditManager,
     rag, reports, eventBus, researchManager, researchQueueService,
+    templateRegistry, domainRegistry, riskSignalRegistry,
     apiRoutes,
     setupSocket: (httpServer) => setupSocket(httpServer, handler, memory, authService),
     shutdown,

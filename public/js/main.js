@@ -20,6 +20,7 @@ import { SettingsPage } from './pages/settings.js';
 import { LoginPage } from './pages/login.js';
 import { OnboardingPage } from './pages/onboarding.js';
 import { IntegrationsPage } from './pages/integrations.js';
+import { ResearchPage } from './pages/research.js';
 import { ThemeManager } from './components/theme-manager.js';
 
 // ─── Initialize Core ─────────────────────────────────────
@@ -82,6 +83,10 @@ router
   })
   .on('/integrations', (mount) => {
     const page = new IntegrationsPage(app);
+    return page.render(mount);
+  })
+  .on('/research', (mount) => {
+    const page = new ResearchPage(app);
     return page.render(mount);
   })
   .on('/login', (mount) => {
@@ -185,7 +190,7 @@ async function boot() {
   api.startHealthPolling();
   sidebar.render(); // Re-render with user info
 
-  console.log('AIOS V2 frontend initialized — 12 pages, real-time WebSocket enabled');
+  console.log('AIOS V2 frontend initialized — 13 pages, real-time WebSocket enabled');
 }
 
 boot();

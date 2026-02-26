@@ -20,7 +20,20 @@ const RISK_PATTERNS = {
 };
 
 class RiskDetector {
+  /**
+   * @param {import('./risk-signal-registry').RiskSignalRegistry} [registry] - Optional signal registry for extended signals
+   */
+  constructor(registry) {
+    this._registry = registry || null;
+  }
+
   detect(text) {
+    // If registry available, delegate to it (includes base + extended signals)
+    if (this._registry) {
+      return this._registry.detect(text);
+    }
+
+    // Fallback to hardcoded patterns
     const signals = [];
 
     for (const [signal, patterns] of Object.entries(RISK_PATTERNS)) {

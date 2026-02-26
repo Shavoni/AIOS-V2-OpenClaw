@@ -20,7 +20,8 @@ function streamToSSE(res, asyncIterable, metadata = {}) {
       for await (const chunk of asyncIterable) {
         if (aborted) break;
         if (chunk.done) {
-          res.write(`event: done\ndata: ${JSON.stringify({ hitlMode: chunk.hitlMode })}\n\n`);
+          const { text: _t, done: _d, ...doneData } = chunk;
+          res.write(`event: done\ndata: ${JSON.stringify(doneData)}\n\n`);
           break;
         }
         res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk.text, model: chunk.model, provider: chunk.provider })}\n\n`);

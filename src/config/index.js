@@ -1,28 +1,10 @@
-const fs = require("fs");
 const path = require("path");
-const { parseProviders } = require("./providers");
+const { detectProviders } = require("./providers");
 
 function loadConfig(projectRoot) {
   const root = projectRoot || path.resolve(__dirname, "../..");
 
-  let openclawConfig = {};
-  const candidates = [
-    path.join(root, ".openclaw", "openclaw.json"),
-    path.join(process.env.HOME || process.env.USERPROFILE || "", ".openclaw", "openclaw.json"),
-  ];
-
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      try {
-        openclawConfig = JSON.parse(fs.readFileSync(p, "utf-8"));
-        break;
-      } catch (_) {}
-    }
-  }
-
-  // OpenClaw stores providers under models.providers
-  const rawProviders = openclawConfig.models?.providers || openclawConfig.providers || {};
-  const providers = parseProviders(rawProviders);
+  const providers = detectProviders();
   const fallbackChain = providers
     .filter((p) => p.enabled !== false)
     .sort((a, b) => a.priority - b.priority)
@@ -34,7 +16,7 @@ function loadConfig(projectRoot) {
     projectRoot: root,
     providers,
     fallbackChain,
-    primaryModel: process.env.PRIMARY_MODEL || "gpt-4o",
+    primaryModel: process.env.PRIMARY_MODEL || "deepseek/deepseek-r1-0528-qwen3-8b",
     logLevel: process.env.LOG_LEVEL || "info",
   });
 }

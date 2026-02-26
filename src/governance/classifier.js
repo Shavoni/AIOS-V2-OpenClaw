@@ -26,19 +26,39 @@ const DOMAIN_PATTERNS = {
 };
 
 class IntentClassifier {
+  /**
+   * @param {import('./domain-registry').DomainRegistry} [registry] - Optional domain registry for extended domains
+   */
+  constructor(registry) {
+    this._registry = registry || null;
+  }
+
+  /** Get the active domain patterns — from registry if available, else hardcoded. */
+  _getDomains() {
+    if (this._registry) {
+      const domains = {};
+      for (const [id, config] of this._registry.listDomains()) {
+        domains[id] = config;
+      }
+      return domains;
+    }
+    return DOMAIN_PATTERNS;
+  }
+
   classify(text) {
     const lower = text.toLowerCase();
     let bestDomain = "General";
     let bestScore = 0;
+    const domains = this._getDomains();
 
-    for (const [domain, config] of Object.entries(DOMAIN_PATTERNS)) {
+    for (const [domain, config] of Object.entries(domains)) {
       if (domain === "General") continue;
       let score = 0;
 
       for (const pattern of config.patterns) {
         if (pattern.test(lower)) score += 0.4;
       }
-      for (const kw of config.keywords) {
+      for (const kw of (config.keywords || [])) {
         if (lower.includes(kw)) score += 0.15;
       }
 
@@ -59,10 +79,11 @@ class IntentClassifier {
 
   _allScores(lower) {
     const scores = {};
-    for (const [domain, config] of Object.entries(DOMAIN_PATTERNS)) {
+    const domains = this._getDomains();
+    for (const [domain, config] of Object.entries(domains)) {
       let score = 0;
       for (const p of config.patterns) { if (p.test(lower)) score += 0.4; }
-      for (const kw of config.keywords) { if (lower.includes(kw)) score += 0.15; }
+      for (const kw of (config.keywords || [])) { if (lower.includes(kw)) score += 0.15; }
       scores[domain] = Math.min(score, 1);
     }
     return scores;

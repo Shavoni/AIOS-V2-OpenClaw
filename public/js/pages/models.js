@@ -321,7 +321,7 @@ export class ModelsPage {
     // Filter by search if active
     const filtered = this._searchTerm
       ? renderList.filter((p) => {
-          const key = (p.name || p.provider || '').toLowerCase();
+          const key = (p.id || p.name || p.provider || '').toLowerCase();
           const meta = PROVIDER_META[key];
           const models = p.models || [];
           // Match provider name/label
@@ -347,9 +347,9 @@ export class ModelsPage {
 
     grid.innerHTML = filtered
       .map((p) => {
-        const key = (p.name || p.provider || '').toLowerCase();
+        const key = (p.id || p.name || p.provider || '').toLowerCase();
         const meta = PROVIDER_META[key] || {
-          label: p.name || key,
+          label: p.id || p.name || key,
           desc: '',
           color: '#6366f1',
           gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
@@ -366,6 +366,31 @@ export class ModelsPage {
       btn.addEventListener('click', async () => {
         const name = btn.getAttribute('data-provider');
         await this._testConnection(name, btn);
+      });
+    });
+
+    // Bind model tag clicks — select model and navigate to chat
+    grid.querySelectorAll('.model-tag--selectable').forEach((tag) => {
+      tag.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const modelId = tag.getAttribute('data-model-id');
+        if (modelId) {
+          sessionStorage.setItem('aios_selected_model', modelId);
+          showToast(`Switching to ${modelId}...`, 'success');
+          this.router.navigate('/chat');
+        }
+      });
+    });
+
+    // Bind provider card header clicks — select default model for that provider
+    grid.querySelectorAll('.provider-card-top').forEach((top) => {
+      top.addEventListener('click', () => {
+        const modelId = top.getAttribute('data-default-model');
+        if (modelId) {
+          sessionStorage.setItem('aios_selected_model', modelId);
+          showToast(`Switching to ${modelId}...`, 'success');
+          this.router.navigate('/chat');
+        }
       });
     });
 
@@ -434,7 +459,8 @@ export class ModelsPage {
           .slice(0, 10)
           .map((m) => {
             const name = typeof m === 'string' ? m : m.name || m.id;
-            return `<span class="model-tag">${escapeHtml(name)}</span>`;
+            const modelId = typeof m === 'string' ? m : m.id || m.name;
+            return `<span class="model-tag model-tag--selectable" data-model-id="${escapeHtml(modelId)}" title="Click to chat with ${escapeHtml(name)}" style="cursor:pointer">${escapeHtml(name)}</span>`;
           })
           .join('') +
         (filteredModels.length > 10
@@ -473,8 +499,8 @@ export class ModelsPage {
 
     return `
       <div class="model-provider-card glass-card stagger-item" data-provider="${escapeHtml(key)}">
-        <!-- Card Top with Provider Gradient -->
-        <div class="provider-card-top" style="background:${meta.gradient};margin:calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0;padding:var(--space-5) var(--space-6);border-radius:var(--radius-lg) var(--radius-lg) 0 0;position:relative">
+        <!-- Card Top with Provider Gradient (click to select default model) -->
+        <div class="provider-card-top" data-default-model="${escapeHtml(providerData.defaultModel || (models[0] ? (typeof models[0] === 'string' ? models[0] : models[0].id || models[0].name || '') : ''))}" style="background:${meta.gradient};margin:calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0;padding:var(--space-5) var(--space-6);border-radius:var(--radius-lg) var(--radius-lg) 0 0;position:relative;cursor:pointer" title="Click to chat with ${escapeHtml(meta.label)}'s default model">
           <div style="display:flex;align-items:center;gap:var(--space-4)">
             <div class="provider-icon-box" style="width:52px;height:52px;border-radius:var(--radius-md);background:rgba(255,255,255,0.2);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
               ${meta.icon}
@@ -492,7 +518,7 @@ export class ModelsPage {
 
         <!-- Models Section -->
         <div class="provider-models-section" style="margin-top:var(--space-5)">
-          <h4 style="font-size:var(--font-size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:0 0 var(--space-2)">Models <span style="color:var(--text-dim)">(${models.length})</span></h4>
+          <h4 style="font-size:var(--font-size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:0 0 var(--space-2)">Models <span style="color:var(--text-dim)">(${models.length})</span> <span style="font-size:10px;text-transform:none;letter-spacing:normal;color:var(--text-dim)">— click to switch</span></h4>
           <div class="provider-model-list" style="display:flex;flex-wrap:wrap;gap:var(--space-2)">${modelListHtml}</div>
         </div>
 
@@ -553,7 +579,7 @@ export class ModelsPage {
 
         return `
           <div style="display:inline-flex;align-items:center;gap:var(--space-2)">
-            <span style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:${meta ? meta.dim : 'var(--bg-tertiary)'};border:1px solid ${color}30;font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);color:${color}">
+            <span class="fallback-chain-item" data-provider="${escapeHtml(name)}" style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:${meta ? meta.dim : 'var(--bg-tertiary)'};border:1px solid ${color}30;font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);color:${color};cursor:pointer;transition:all 0.15s ease">
               <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
               ${escapeHtml(label)}
             </span>
@@ -595,6 +621,20 @@ export class ModelsPage {
         </div>
       </div>
     `;
+
+    // Bind fallback chain clicks — scroll to provider card
+    detailsEl.querySelectorAll('.fallback-chain-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const providerKey = item.getAttribute('data-provider')?.toLowerCase();
+        const card = document.querySelector(`.model-provider-card[data-provider="${providerKey}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.outline = '2px solid var(--accent-blue)';
+          card.style.outlineOffset = '4px';
+          setTimeout(() => { card.style.outline = ''; card.style.outlineOffset = ''; }, 2000);
+        }
+      });
+    });
   }
 
   /* ========================================================================

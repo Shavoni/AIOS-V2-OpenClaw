@@ -82,10 +82,12 @@ class MessageHandler {
       { role: "user", content: userMessage },
     ];
 
-    // 8. Route to LLM
+    // 8. Route to LLM (model override from user selection takes precedence)
     const agentProfile = this.agent.getProfile(profile);
+    const effectiveModel = options.model && options.model !== 'auto'
+      ? options.model : agentProfile.model;
     const result = await this.router.route(messages, {
-      model: agentProfile.model,
+      model: effectiveModel,
       temperature: agentProfile.temperature,
       maxTokens: agentProfile.maxTokens,
       localOnly: decision.providerConstraints.localOnly,
@@ -146,6 +148,11 @@ class MessageHandler {
       usage: result.usage,
       latencyMs,
       hitlMode: decision.hitlMode,
+      policyTriggers: decision.policyTriggers,
+      guardrails: decision.guardrails,
+      localOnly: decision.providerConstraints?.localOnly || false,
+      agent: this.agent.identity?.name || "Scotty-5",
+      domain: intent.domain,
       streamed: false,
     };
   }
@@ -178,7 +185,14 @@ class MessageHandler {
         });
       }
 
-      yield { text, done: true };
+      yield {
+        text, done: true,
+        hitlMode: "ESCALATE",
+        policyTriggers: decision.policyTriggers,
+        guardrails: decision.guardrails,
+        agent: this.agent.identity?.name || "Scotty-5",
+        domain: intent.domain,
+      };
       return;
     }
 
@@ -201,6 +215,8 @@ class MessageHandler {
     ];
 
     const agentProfile = this.agent.getProfile(profile);
+    const effectiveModel = options.model && options.model !== 'auto'
+      ? options.model : agentProfile.model;
     let fullText = "";
 
     if (decision.hitlMode === "DRAFT") {
@@ -210,7 +226,7 @@ class MessageHandler {
     }
 
     const stream = this.router.routeStream(messages, {
-      model: agentProfile.model,
+      model: effectiveModel,
       temperature: agentProfile.temperature,
       maxTokens: agentProfile.maxTokens,
     });
@@ -223,12 +239,12 @@ class MessageHandler {
     const latencyMs = Date.now() - startTime;
 
     this.memory.addMessage(sessionId, "assistant", fullText, {
-      model: agentProfile.model,
+      model: effectiveModel,
       provider: "stream",
       latencyMs,
     });
 
-    this._audit(sessionId, intent, risk, decision, { model: agentProfile.model });
+    this._audit(sessionId, intent, risk, decision, { model: effectiveModel });
 
     // Queue DRAFT for HITL
     if (decision.hitlMode === "DRAFT" && this.hitlManager) {
@@ -253,7 +269,16 @@ class MessageHandler {
       success: true,
     });
 
-    yield { text: "", done: true, hitlMode: decision.hitlMode };
+    yield {
+      text: "", done: true,
+      hitlMode: decision.hitlMode,
+      policyTriggers: decision.policyTriggers,
+      guardrails: decision.guardrails,
+      localOnly: decision.providerConstraints?.localOnly || false,
+      agent: this.agent.identity?.name || "Scotty-5",
+      domain: intent.domain,
+      latencyMs,
+    };
   }
 
   _buildEscalationResponse(decision, intent) {

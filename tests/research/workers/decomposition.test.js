@@ -10,8 +10,8 @@ describe("DecompositionWorker", () => {
   });
 
   test("decomposes a query into sub-questions via LLM", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([
         "What are the key principles of quantum computing?",
         "How do qubits differ from classical bits?",
         "What are current applications of quantum computing?",
@@ -25,19 +25,19 @@ describe("DecompositionWorker", () => {
     expect(result[0]).toBe("Explain quantum computing");
   });
 
-  test("calls modelRouter.chatCompletion with structured prompt", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({ content: '["sub-q1"]' });
+  test("calls modelRouter.route with structured prompt", async () => {
+    mockRouter.route.mockResolvedValue({ text: '["sub-q1"]' });
     await worker.execute("test query");
 
-    expect(mockRouter.chatCompletion).toHaveBeenCalledTimes(1);
-    const call = mockRouter.chatCompletion.mock.calls[0][0];
-    expect(call.messages).toBeDefined();
-    expect(call.messages.some((m) => m.content.includes("test query"))).toBe(true);
+    expect(mockRouter.route).toHaveBeenCalledTimes(1);
+    const messages = mockRouter.route.mock.calls[0][0];
+    expect(messages).toBeDefined();
+    expect(messages.some((m) => m.content.includes("test query"))).toBe(true);
   });
 
   test("includes original query as first sub-question", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: '["How does X work?", "Why is Y important?"]',
+    mockRouter.route.mockResolvedValue({
+      text: '["How does X work?", "Why is Y important?"]',
     });
 
     const result = await worker.execute("Original query");
@@ -46,7 +46,7 @@ describe("DecompositionWorker", () => {
 
   test("caps sub-questions at 8", async () => {
     const many = Array.from({ length: 12 }, (_, i) => `Question ${i + 1}`);
-    mockRouter.chatCompletion.mockResolvedValue({ content: JSON.stringify(many) });
+    mockRouter.route.mockResolvedValue({ text: JSON.stringify(many) });
 
     const result = await worker.execute("test");
     // original + capped LLM = max 9, but we cap total at 8
@@ -54,22 +54,22 @@ describe("DecompositionWorker", () => {
   });
 
   test("returns original query wrapped in array if LLM fails", async () => {
-    mockRouter.chatCompletion.mockRejectedValue(new Error("timeout"));
+    mockRouter.route.mockRejectedValue(new Error("timeout"));
 
     const result = await worker.execute("fallback query");
     expect(result).toEqual(["fallback query"]);
   });
 
   test("handles malformed LLM JSON response gracefully", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({ content: "not valid json" });
+    mockRouter.route.mockResolvedValue({ text: "not valid json" });
 
     const result = await worker.execute("bad json query");
     expect(result).toEqual(["bad json query"]);
   });
 
   test("strips numbered prefixes from LLM output", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: '["1. What is X?", "2. How does Y work?"]',
+    mockRouter.route.mockResolvedValue({
+      text: '["1. What is X?", "2. How does Y work?"]',
     });
 
     const result = await worker.execute("test");
@@ -78,8 +78,8 @@ describe("DecompositionWorker", () => {
   });
 
   test("deduplicates similar sub-questions", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: '["What is quantum?", "What is quantum?", "How does it work?"]',
+    mockRouter.route.mockResolvedValue({
+      text: '["What is quantum?", "What is quantum?", "How does it work?"]',
     });
 
     const result = await worker.execute("quantum");

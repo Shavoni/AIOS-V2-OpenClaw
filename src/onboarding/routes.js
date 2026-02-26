@@ -11,10 +11,16 @@ const _discoveryEngine = new DiscoveryEngine();
 function createOnboardingRoutes(wizard) {
   const api = express.Router();
 
+  // ─── Sectors ─────────────────────────────────────────────
+
+  api.get("/sectors", asyncHandler((_req, res) => {
+    res.json(wizard.listSectors());
+  }));
+
   // ─── Wizard Lifecycle ─────────────────────────────────────
 
   api.post("/start", asyncHandler((req, res) => {
-    const { organizationName, websiteUrl, organizationType, manualEntry } = req.body;
+    const { organizationName, websiteUrl, organizationType, sector, manualEntry } = req.body;
     if (!organizationName) {
       return res.status(400).json({ error: "organizationName is required" });
     }
@@ -32,8 +38,14 @@ function createOnboardingRoutes(wizard) {
       return res.status(400).json({ error: "websiteUrl is required for non-manual onboarding" });
     }
 
-    const state = wizard.startWizard({ organizationName, websiteUrl: normalizedUrl, organizationType });
+    const state = wizard.startWizard({ organizationName, websiteUrl: normalizedUrl, organizationType, sector });
     res.json(state);
+  }));
+
+  api.put("/wizards/:id/sector", asyncHandler((req, res) => {
+    const { sector } = req.body;
+    if (!sector) return res.status(400).json({ error: "sector is required" });
+    res.json(wizard.setSector(req.params.id, sector));
   }));
 
   api.get("/wizards", asyncHandler((req, res) => {

@@ -3,7 +3,7 @@
  */
 
 function createMockRouter() {
-  return { chatCompletion: jest.fn() };
+  return { route: jest.fn(), chatCompletion: jest.fn() };
 }
 
 function createMockRag() {

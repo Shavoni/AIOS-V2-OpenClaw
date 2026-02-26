@@ -16,8 +16,8 @@ describe("ScoringWorker", () => {
   });
 
   test("scores each source using SourceScorer", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([{ text: "Claim 1", supportingIndices: [0] }]),
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([{ text: "Claim 1", supportingIndices: [0] }]),
     });
 
     const sources = [
@@ -31,8 +31,8 @@ describe("ScoringWorker", () => {
   });
 
   test("identifies claims from evidence via LLM", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([
         { text: "Quantum computers use qubits", supportingIndices: [0], contradictingIndices: [] },
         { text: "Qubits leverage superposition", supportingIndices: [0], contradictingIndices: [] },
       ]),
@@ -47,8 +47,8 @@ describe("ScoringWorker", () => {
   });
 
   test("scores each claim using ClaimScorer", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([
         { text: "Claim A", supportingIndices: [0, 1], contradictingIndices: [] },
       ]),
     });
@@ -65,8 +65,8 @@ describe("ScoringWorker", () => {
   });
 
   test("detects contradictions between sources", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([
         { text: "Disputed claim", supportingIndices: [0], contradictingIndices: [1] },
       ]),
     });
@@ -81,8 +81,8 @@ describe("ScoringWorker", () => {
   });
 
   test("calculates job-level confidence via JobConfidenceCalculator", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([
         { text: "Claim", supportingIndices: [0], contradictingIndices: [] },
       ]),
     });
@@ -100,8 +100,8 @@ describe("ScoringWorker", () => {
   });
 
   test("returns structured result", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: JSON.stringify([
+    mockRouter.route.mockResolvedValue({
+      text: JSON.stringify([
         { text: "Claim", supportingIndices: [0], contradictingIndices: [] },
       ]),
     });
@@ -117,7 +117,7 @@ describe("ScoringWorker", () => {
   });
 
   test("handles LLM failure for claim extraction gracefully", async () => {
-    mockRouter.chatCompletion.mockRejectedValue(new Error("LLM timeout"));
+    mockRouter.route.mockRejectedValue(new Error("LLM timeout"));
 
     const result = await worker.execute(
       [{ text: "S", url: "https://x.com", relevanceScore: 0.5 }],

@@ -18,13 +18,32 @@ const DOMAIN_EXEMPLARS = {
 class EmbeddingClassifier {
   /**
    * @param {Object|null} embedder - Embedding provider instance (or null for keyword fallback)
+   * @param {import('./domain-registry').DomainRegistry} [registry] - Optional domain registry for extended domains
    */
-  constructor(embedder) {
+  constructor(embedder, registry) {
     this.embedder = embedder;
-    this.keywordClassifier = new IntentClassifier();
+    this._registry = registry || null;
+    this.keywordClassifier = new IntentClassifier(registry);
     this.domainEmbeddings = {};
-    this.domainNames = Object.keys(DOMAIN_EXEMPLARS);
+    this.domainNames = this._getDomainNames();
     this.initialized = false;
+  }
+
+  /** Get domain names from registry or hardcoded exemplars. */
+  _getDomainNames() {
+    if (this._registry) {
+      return [...this._registry.listDomains()].map(([k]) => k).filter((k) => k !== "General");
+    }
+    return Object.keys(DOMAIN_EXEMPLARS);
+  }
+
+  /** Get exemplar text for a domain. */
+  _getExemplar(domain) {
+    if (this._registry) {
+      const config = this._registry.getDomain(domain);
+      return config?.exemplar || DOMAIN_EXEMPLARS[domain] || "";
+    }
+    return DOMAIN_EXEMPLARS[domain] || "";
   }
 
   /**
@@ -34,7 +53,8 @@ class EmbeddingClassifier {
   async initialize() {
     if (!this.embedder) return;
 
-    const texts = this.domainNames.map(d => DOMAIN_EXEMPLARS[d]);
+    this.domainNames = this._getDomainNames();
+    const texts = this.domainNames.map((d) => this._getExemplar(d));
     const embeddings = await this.embedder.embedBatch(texts);
 
     if (embeddings) {

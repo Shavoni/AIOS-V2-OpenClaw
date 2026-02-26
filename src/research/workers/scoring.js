@@ -21,8 +21,8 @@ class ScoringWorker extends BaseWorker {
     let rawClaims = [];
     try {
       const result = await this.withTimeout(
-        this.router.chatCompletion({
-          messages: [
+        this.router.route(
+          [
             {
               role: "system",
               content: `You are a claim extraction engine. Given a research query and source evidence, identify the key factual claims made across the sources. For each claim, indicate which source indices support it and which contradict it. Return ONLY a JSON array where each element has: {"text": "claim text", "supportingIndices": [0, 1], "contradictingIndices": []}. No explanation, no markdown, just the JSON array.`,
@@ -32,12 +32,12 @@ class ScoringWorker extends BaseWorker {
               content: `Query: ${query}\n\nSources:\n${scoredSources.map((s, i) => `[${i}] ${s.text}`).join("\n")}`,
             },
           ],
-          temperature: 0.2,
-        }),
+          { temperature: 0.2 }
+        ),
         "Claim extraction"
       );
 
-      const parsed = this.safeJsonParse(result.content, []);
+      const parsed = this.safeJsonParse(result.text, []);
       if (Array.isArray(parsed)) rawClaims = parsed;
     } catch {
       return {

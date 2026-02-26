@@ -135,7 +135,7 @@ export class API {
     return this._post('/api/chat', { conversationId, message, model });
   }
 
-  async sendMessageStream(conversationId, message, model, onChunk) {
+  async sendMessageStream(conversationId, message, model, onChunk, onMeta) {
     // Cancel any in-flight stream request
     if (this._streamController) {
       this._streamController.abort();
@@ -176,9 +176,21 @@ export class API {
           try {
             const data = JSON.parse(dataStr);
             if (currentEvent === 'error') throw new Error(data.error || 'Stream error');
+            if (currentEvent === 'done') {
+              // Terminal event — carries hitlMode, governance, agent, latency
+              if (onMeta) onMeta(data);
+              currentEvent = '';
+              continue;
+            }
+            if (currentEvent === 'meta') {
+              // Session metadata — sessionId, profile
+              if (onMeta) onMeta(data);
+              currentEvent = '';
+              continue;
+            }
             if (data.content || data.text || data.chunk) {
-              onChunk(data.content || data.text || data.chunk);
-            } else if (typeof data === 'string') { onChunk(data); }
+              onChunk(data.content || data.text || data.chunk, data);
+            } else if (typeof data === 'string') { onChunk(data, data); }
           } catch (parseErr) {
             if (dataStr && dataStr !== '[DONE]' && !parseErr.message.includes('Stream error')) {
               onChunk(dataStr);

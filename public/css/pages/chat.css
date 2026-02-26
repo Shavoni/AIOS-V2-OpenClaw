@@ -1309,3 +1309,24 @@
   font-size: 0.6rem;
   color: var(--text-muted);
 }
+
+/* ==========================================================================
+   Governance Shield Badge
+   ========================================================================== */
+
+.governance-shield {
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  margin-left: var(--space-1);
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.governance-shield:hover {
+  opacity: 1;
+}
+
+.governance-shield svg {
+  display: block;
+}

@@ -82,9 +82,32 @@ class DiscoveryEngine {
     this.maxPages = opts.maxPages || 100;
     this.rateLimitMs = opts.rateLimitMs || 500;
     this.timeoutMs = opts.timeoutMs || 30000;
+    this._maxJobs = opts.maxJobs || 100;
+    this._jobTtlMs = opts.jobTtlMs || 2 * 60 * 60 * 1000; // 2 hours
 
     // In-memory job store (persisted in DB by the wizard)
     this._jobs = new Map();
+
+    // Periodic cleanup of stale jobs
+    this._cleanupTimer = setInterval(() => this._pruneJobs(), 10 * 60 * 1000);
+    this._cleanupTimer.unref();
+  }
+
+  _pruneJobs() {
+    const cutoff = Date.now() - this._jobTtlMs;
+    for (const [id, job] of this._jobs) {
+      const completedAt = job.completedAt ? new Date(job.completedAt).getTime() : 0;
+      const startedAt = new Date(job.startedAt).getTime();
+      if ((completedAt && completedAt < cutoff) || (!completedAt && startedAt < cutoff)) {
+        this._jobs.delete(id);
+      }
+    }
+    // Hard cap: keep only most recent jobs if over limit
+    if (this._jobs.size > this._maxJobs) {
+      const entries = [...this._jobs.entries()];
+      const excess = entries.slice(0, entries.length - this._maxJobs);
+      for (const [id] of excess) this._jobs.delete(id);
+    }
   }
 
   /**
@@ -169,6 +192,9 @@ class DiscoveryEngine {
       this._extractDepartments(job, pages, baseUrl);
       this._extractDataPortals(job, pages, baseUrl);
       this._extractGovernanceDocs(job, pages, baseUrl);
+
+      // Stash pages for LLM enhancement (cleared after wizard reads them)
+      job._pages = pages;
 
       job.status = "completed";
       job.completedAt = new Date().toISOString();

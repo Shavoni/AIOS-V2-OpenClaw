@@ -15,7 +15,7 @@ class ResearchJobManager {
 
   // ─── Job CRUD ──────────────────────────────────────────
 
-  createJob({ userId, query, ttl = 86400, metadata = {} }) {
+  createJob({ userId, query, ttl = 86400, metadata = {}, agentId }) {
     const id = uuidv4();
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
     const expiresAt = new Date(Date.now() + ttl * 1000)
@@ -24,9 +24,9 @@ class ResearchJobManager {
       .slice(0, 19);
 
     this.db.run(
-      `INSERT INTO research_jobs (id, user_id, query, ttl, metadata, created_at, updated_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, userId || null, query, ttl, JSON.stringify(metadata), now, now, expiresAt]
+      `INSERT INTO research_jobs (id, user_id, query, ttl, metadata, agent_id, created_at, updated_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, userId || null, query, ttl, JSON.stringify(metadata), agentId || null, now, now, expiresAt]
     );
 
     if (this.saveFn) this.saveFn();

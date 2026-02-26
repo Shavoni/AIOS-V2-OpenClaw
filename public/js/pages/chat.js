@@ -133,12 +133,7 @@ export class ChatPage {
               </div>
               <div class="chat-input-meta">
                 <select class="model-selector" id="model-selector">
-                  <option value="auto">Auto (Recommended)</option>
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="gemini">Gemini</option>
-                  <option value="lmstudio">LM Studio</option>
+                  <option value="auto">Auto (Profile Default)</option>
                 </select>
                 <span class="char-count" id="char-count"></span>
               </div>
@@ -152,6 +147,7 @@ export class ChatPage {
     this._bindEvents(mount);
     this._loadConversations();
     this._loadAgentDirectory();
+    this._loadModels();
     this._checkQuickMessage();
 
     return () => this._cleanup();
@@ -259,6 +255,72 @@ export class ChatPage {
       `).join('');
     } catch {
       container.innerHTML = '<div class="agent-dir-empty">Agents unavailable</div>';
+    }
+  }
+
+  // =========================================================================
+  //  Dynamic Model Loader
+  // =========================================================================
+
+  async _loadModels() {
+    const selector = document.getElementById('model-selector');
+    if (!selector) return;
+
+    try {
+      let providers = await this.api.fetchProviders();
+      // Normalize: API may return array, { providers: [] }, or object keyed by name
+      if (!Array.isArray(providers)) {
+        if (providers && Array.isArray(providers.providers)) {
+          providers = providers.providers;
+        } else if (providers && typeof providers === 'object') {
+          providers = Object.entries(providers).map(([key, val]) => ({ id: key, ...val }));
+        } else {
+          return;
+        }
+      }
+
+      const PROVIDER_LABELS = {
+        ollama: 'Ollama (Local)',
+        'lm-studio': 'LM Studio (Local)',
+        openai: 'OpenAI',
+        anthropic: 'Anthropic',
+        gemini: 'Gemini',
+        moonshot: 'Moonshot',
+        anythingllm: 'AnythingLLM',
+      };
+
+      for (const provider of providers) {
+        const models = provider.models || [];
+        if (models.length === 0) continue;
+
+        const group = document.createElement('optgroup');
+        group.label = PROVIDER_LABELS[provider.id] || provider.id;
+        if (!provider.healthy) group.label += ' (offline)';
+
+        for (const model of models) {
+          const opt = document.createElement('option');
+          const modelId = typeof model === 'string' ? model : (model.id || model.name);
+          const modelName = typeof model === 'string' ? model : (model.name || model.id);
+          opt.value = modelId;
+          opt.textContent = modelName;
+          group.appendChild(opt);
+        }
+
+        selector.appendChild(group);
+      }
+
+      // Check if a model was pre-selected from the Models page
+      const preSelected = sessionStorage.getItem('aios_selected_model');
+      if (preSelected) {
+        sessionStorage.removeItem('aios_selected_model');
+        selector.value = preSelected;
+        // If the value wasn't found in options, it won't change — that's fine
+        if (selector.value === preSelected) {
+          showToast(`Model: ${preSelected}`, 'success');
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load models for selector:', err);
     }
   }
 
@@ -517,6 +579,18 @@ export class ChatPage {
               renderQueued = false;
             });
           }
+        },
+        (metaEvent) => {
+          // Capture done/meta SSE events — governance, agent, latency
+          if (metaEvent) {
+            if (metaEvent.hitlMode)       this._streamMeta.hitlMode = metaEvent.hitlMode;
+            if (metaEvent.policyTriggers) this._streamMeta.policyTriggers = metaEvent.policyTriggers;
+            if (metaEvent.guardrails)     this._streamMeta.guardrails = metaEvent.guardrails;
+            if (metaEvent.localOnly)      this._streamMeta.localOnly = metaEvent.localOnly;
+            if (metaEvent.agent)          this._streamMeta.agent = metaEvent.agent;
+            if (metaEvent.domain)         this._streamMeta.domain = metaEvent.domain;
+            if (metaEvent.latencyMs)      this._streamMeta.latencyMs = metaEvent.latencyMs;
+          }
         }
       );
 
@@ -574,6 +648,28 @@ export class ChatPage {
     }
 
     // ── Post-response enhancements ──
+
+    // 0. Update agent name and governance shield from stream metadata
+    if (responseMeta.agent || responseMeta.policyTriggers) {
+      const senderEl = agentBubble.querySelector('.bubble-sender');
+      if (senderEl && responseMeta.agent) {
+        senderEl.textContent = responseMeta.agent;
+      }
+      if (responseMeta.policyTriggers && responseMeta.policyTriggers.length > 0) {
+        const header = agentBubble.querySelector('.bubble-header');
+        const existingShield = header?.querySelector('.governance-shield');
+        if (!existingShield && header) {
+          const title = responseMeta.policyTriggers.map(p => escapeHtml(p)).join(', ');
+          const shieldColor = responseMeta.localOnly ? 'var(--accent-orange)' : 'var(--accent-blue)';
+          const shield = document.createElement('span');
+          shield.className = 'governance-shield';
+          shield.title = `Governance: ${title}`;
+          shield.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${shieldColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1l4.5 2v3c0 2.8-1.8 4.8-4.5 5.5C3.3 10.8 1.5 8.8 1.5 6V3L6 1z"/></svg>`;
+          const senderSpan = header.querySelector('.bubble-sender');
+          if (senderSpan) senderSpan.after(shield);
+        }
+      }
+    }
 
     // 1. Routing transparency bar
     this._renderRoutingBar(agentBubble, responseMeta);
@@ -718,11 +814,25 @@ export class ChatPage {
         </button>
       </div>` : '';
 
+    // Agent name and governance shield
+    const agentName = (!isUser && opts.agent) ? opts.agent : (isUser ? 'You' : 'Scotty');
+    let shieldHtml = '';
+    if (!isUser && opts.policyTriggers && opts.policyTriggers.length > 0) {
+      const title = opts.policyTriggers.map(p => escapeHtml(p)).join(', ');
+      const shieldColor = opts.localOnly ? 'var(--accent-orange)' : 'var(--accent-blue)';
+      shieldHtml = `<span class="governance-shield" title="Governance: ${title}">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${shieldColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 1l4.5 2v3c0 2.8-1.8 4.8-4.5 5.5C3.3 10.8 1.5 8.8 1.5 6V3L6 1z"/>
+        </svg>
+      </span>`;
+    }
+
     bubble.innerHTML = `
       ${avatar}
       <div class="bubble-body">
         <div class="bubble-header">
-          <span class="bubble-sender">${isUser ? 'You' : 'Scotty'}</span>
+          <span class="bubble-sender">${escapeHtml(agentName)}</span>
+          ${shieldHtml}
           ${timeStr}
           ${hitlBadge}
         </div>

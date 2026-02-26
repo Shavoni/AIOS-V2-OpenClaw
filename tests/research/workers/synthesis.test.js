@@ -10,8 +10,8 @@ describe("SynthesisWorker", () => {
   });
 
   test("passes curated evidence set to LLM with structured prompt", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: "# Research Report\n\nQuantum computing uses qubits...",
+    mockRouter.route.mockResolvedValue({
+      text: "# Research Report\n\nQuantum computing uses qubits...",
       usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
     });
 
@@ -26,14 +26,14 @@ describe("SynthesisWorker", () => {
       jobConfidence: { confidence: 0.85, claimCount: 1, sourceCount: 5, hasContradictions: false },
     });
 
-    const call = mockRouter.chatCompletion.mock.calls[0][0];
-    expect(call.messages).toBeDefined();
-    expect(call.messages.some((m) => m.content.includes("quantum computing"))).toBe(true);
+    const messages = mockRouter.route.mock.calls[0][0];
+    expect(messages).toBeDefined();
+    expect(messages.some((m) => m.content.includes("quantum computing"))).toBe(true);
   });
 
   test("structured prompt includes source citations", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: "Report...",
+    mockRouter.route.mockResolvedValue({
+      text: "Report...",
       usage: { totalTokens: 100 },
     });
 
@@ -46,14 +46,14 @@ describe("SynthesisWorker", () => {
       jobConfidence: { confidence: 0.5, claimCount: 0, sourceCount: 1, hasContradictions: false },
     });
 
-    const call = mockRouter.chatCompletion.mock.calls[0][0];
-    const systemMsg = call.messages.find((m) => m.role === "system");
+    const messages = mockRouter.route.mock.calls[0][0];
+    const systemMsg = messages.find((m) => m.role === "system");
     expect(systemMsg.content).toContain("https://nature.com/article");
   });
 
   test("includes confidence level in synthesis prompt", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: "Report...",
+    mockRouter.route.mockResolvedValue({
+      text: "Report...",
       usage: { totalTokens: 100 },
     });
 
@@ -64,14 +64,14 @@ describe("SynthesisWorker", () => {
       jobConfidence: { confidence: 0.92, claimCount: 3, sourceCount: 10, hasContradictions: false },
     });
 
-    const call = mockRouter.chatCompletion.mock.calls[0][0];
-    const content = call.messages.map((m) => m.content).join(" ");
+    const messages = mockRouter.route.mock.calls[0][0];
+    const content = messages.map((m) => m.content).join(" ");
     expect(content).toContain("92");
   });
 
   test("flags contradictions in synthesis prompt", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: "Report...",
+    mockRouter.route.mockResolvedValue({
+      text: "Report...",
       usage: { totalTokens: 100 },
     });
 
@@ -84,14 +84,14 @@ describe("SynthesisWorker", () => {
       jobConfidence: { confidence: 0.6, claimCount: 1, sourceCount: 5, hasContradictions: true },
     });
 
-    const call = mockRouter.chatCompletion.mock.calls[0][0];
-    const content = call.messages.map((m) => m.content).join(" ");
+    const messages = mockRouter.route.mock.calls[0][0];
+    const content = messages.map((m) => m.content).join(" ");
     expect(content.toLowerCase()).toContain("contradiction");
   });
 
   test("returns synthesis text and token usage", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: "# Full Research Report\n\nDetailed findings...",
+    mockRouter.route.mockResolvedValue({
+      text: "# Full Research Report\n\nDetailed findings...",
       usage: { promptTokens: 2000, completionTokens: 800, totalTokens: 2800 },
     });
 
@@ -107,7 +107,7 @@ describe("SynthesisWorker", () => {
   });
 
   test("handles LLM failure with error message", async () => {
-    mockRouter.chatCompletion.mockRejectedValue(new Error("Model overloaded"));
+    mockRouter.route.mockRejectedValue(new Error("Model overloaded"));
 
     const result = await worker.execute({
       query: "test",
@@ -120,9 +120,9 @@ describe("SynthesisWorker", () => {
     expect(result.error).toBe("Model overloaded");
   });
 
-  test("calls modelRouter.chatCompletion", async () => {
-    mockRouter.chatCompletion.mockResolvedValue({
-      content: "Report",
+  test("calls modelRouter.route", async () => {
+    mockRouter.route.mockResolvedValue({
+      text: "Report",
       usage: { totalTokens: 100 },
     });
 
@@ -133,6 +133,6 @@ describe("SynthesisWorker", () => {
       jobConfidence: { confidence: 0.5, claimCount: 0, sourceCount: 0, hasContradictions: false },
     });
 
-    expect(mockRouter.chatCompletion).toHaveBeenCalledTimes(1);
+    expect(mockRouter.route).toHaveBeenCalledTimes(1);
   });
 });
