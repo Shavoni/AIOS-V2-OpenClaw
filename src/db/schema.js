@@ -388,6 +388,44 @@ const SCHEMA = [
   FOREIGN KEY (job_id) REFERENCES research_jobs(id) ON DELETE CASCADE
 )`,
   `CREATE INDEX IF NOT EXISTS idx_research_sources_job ON research_sources(job_id)`,
+
+  // ─── Brain Fuel: Nutrition Tracking ──────────────────────
+  `CREATE TABLE IF NOT EXISTS brainfuel_meals (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'dev',
+  date TEXT NOT NULL,
+  meal_type TEXT DEFAULT 'meal',
+  summary TEXT DEFAULT '',
+  health_score INTEGER DEFAULT 5,
+  suggestions TEXT DEFAULT '[]',
+  total_calories REAL DEFAULT 0,
+  total_protein_g REAL DEFAULT 0,
+  total_carbs_g REAL DEFAULT 0,
+  total_fat_g REAL DEFAULT 0,
+  total_fiber_g REAL DEFAULT 0,
+  total_sugar_g REAL DEFAULT 0,
+  image_data TEXT,
+  analysis_raw TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`,
+  `CREATE INDEX IF NOT EXISTS idx_brainfuel_meals_date ON brainfuel_meals(user_id, date)`,
+  `CREATE TABLE IF NOT EXISTS brainfuel_meal_items (
+  id TEXT PRIMARY KEY,
+  meal_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  portion TEXT DEFAULT '1 serving',
+  calories REAL DEFAULT 0,
+  protein_g REAL DEFAULT 0,
+  carbs_g REAL DEFAULT 0,
+  fat_g REAL DEFAULT 0,
+  fiber_g REAL DEFAULT 0,
+  sugar_g REAL DEFAULT 0,
+  portion_notes TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (meal_id) REFERENCES brainfuel_meals(id) ON DELETE CASCADE
+)`,
+  `CREATE INDEX IF NOT EXISTS idx_brainfuel_items_meal ON brainfuel_meal_items(meal_id)`,
 ];
 
 // Safe column additions for existing databases (ALTER TABLE is a no-op if column exists)

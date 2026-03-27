@@ -20,6 +20,7 @@ import { SettingsPage } from './pages/settings.js';
 import { LoginPage } from './pages/login.js';
 import { OnboardingPage } from './pages/onboarding.js';
 import { IntegrationsPage } from './pages/integrations.js';
+import { BrainFuelPage } from './pages/brainfuel.js';
 import { ThemeManager } from './components/theme-manager.js';
 
 // ─── Initialize Core ─────────────────────────────────────
@@ -86,6 +87,10 @@ router
   })
   .on('/login', (mount) => {
     const page = new LoginPage(app);
+    return page.render(mount);
+  })
+  .on('/brainfuel', (mount) => {
+    const page = new BrainFuelPage(app);
     return page.render(mount);
   });
 

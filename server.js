@@ -25,7 +25,7 @@ async function main() {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         connectSrc: ["'self'", "ws:", "wss:"],
-        imgSrc: ["'self'", "data:", "blob:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
         fontSrc: ["'self'"],
       },
     },
@@ -38,7 +38,7 @@ async function main() {
     credentials: true,
   }));
   app.use(morgan('dev'));
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '15mb' }));
 
   // Rate limiting
   app.use('/api/auth/login', authLimiter);

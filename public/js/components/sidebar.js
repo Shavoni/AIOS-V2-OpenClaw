@@ -119,6 +119,16 @@ export class Sidebar {
         </svg>`,
       },
       {
+        label: 'Brain Fuel',
+        route: '/brainfuel',
+        badgeKey: null,
+        icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 2C6.7 2 4 4.7 4 8c0 2.2 1.2 4.1 3 5.2V15a1 1 0 001 1h4a1 1 0 001-1v-1.8c1.8-1.1 3-3 3-5.2 0-3.3-2.7-6-6-6z"/>
+          <path d="M8 18h4"/>
+          <path d="M10 2v3M7 5l1.5 2M13 5l-1.5 2"/>
+        </svg>`,
+      },
+      {
         label: 'Integrations',
         route: '/integrations',
         badgeKey: null,

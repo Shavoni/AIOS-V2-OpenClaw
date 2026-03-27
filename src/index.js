@@ -65,6 +65,10 @@ const { createEmbeddingProvider } = require('./rag/embedding-provider');
 const { VectorStore } = require('./rag/vector-store');
 const { EmbeddingClassifier } = require('./governance/embedding-classifier');
 
+// Brain Fuel (AI Nutrition Tracker)
+const { BrainFuelService } = require('./brainfuel/service');
+const { createBrainFuelRoutes } = require('./brainfuel/routes');
+
 // Document parsing + web crawling + MANUS ingest
 const { DocumentParser } = require('./rag/document-parser');
 const { WebCrawler } = require('./agents/web-crawler');
@@ -223,6 +227,10 @@ async function createApp() {
   // Integrations — operator access required
   const connectorService = new ConnectorService(db, markDirty);
   apiRoutes.use('/integrations', authRequired('operator'), createIntegrationRoutes(connectorService));
+
+  // Brain Fuel — viewer access (nutrition tracking)
+  const brainFuelService = new BrainFuelService(db, markDirty);
+  apiRoutes.use('/brainfuel', authRequired('viewer'), createBrainFuelRoutes(brainFuelService));
 
   // GDPR — viewer access (users manage their own data)
   const consentService = new ConsentService(db, markDirty);

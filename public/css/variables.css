@@ -165,6 +165,7 @@
   --gradient-memory: linear-gradient(135deg, #ec4899, #d946ef, #a855f7);
   --gradient-models: linear-gradient(135deg, #14b8a6, #0d9488, #0f766e);
   --gradient-login: linear-gradient(135deg, #00ff88, #00b4d8);
+  --gradient-brainfuel: linear-gradient(135deg, #22c55e, #16a34a, #15803d);
 
   /* --- Agent Domain Colors --- */
   --domain-hr: #8b5cf6;

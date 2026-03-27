@@ -1,0 +1,671 @@
+/* ==========================================================================
+   Brain Fuel — AI-Powered Nutrition Tracker Page Styles
+   ========================================================================== */
+
+/* Gradient override */
+.gradient-brainfuel {
+  background: linear-gradient(135deg, #22c55e, #16a34a, #15803d) !important;
+}
+
+/* ─── Daily Macro Ring Cards ─────────────────────────────── */
+
+.bf-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.bf-macro-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.bf-macro-card:hover {
+  border-color: var(--glass-border-hover);
+  background: var(--glass-bg-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.bf-macro-card .macro-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: var(--space-2);
+}
+
+.bf-macro-card .macro-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  margin-bottom: var(--space-1);
+}
+
+.bf-macro-card .macro-goal {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.bf-macro-card .macro-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  margin-top: var(--space-3);
+  overflow: hidden;
+}
+
+.bf-macro-card .macro-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* ─── Log Meal Actions ───────────────────────────────────── */
+
+.bf-actions-row {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.bf-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.bf-action-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--accent-green-border);
+  box-shadow: var(--shadow-green);
+  transform: translateY(-1px);
+}
+
+.bf-action-btn--primary {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  border-color: transparent;
+}
+
+.bf-action-btn--primary:hover {
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+}
+
+.bf-action-btn--secondary {
+  background: var(--glass-bg);
+  border-color: var(--accent-blue-border);
+  color: var(--accent-blue);
+}
+
+.bf-action-btn--secondary:hover {
+  background: var(--accent-blue-dim);
+}
+
+/* ─── Upload Modal ───────────────────────────────────────── */
+
+.bf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  z-index: var(--z-modal-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.bf-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+  animation: scaleIn 0.2s ease;
+  position: relative;
+  z-index: var(--z-modal);
+}
+
+.bf-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.bf-modal-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bf-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.bf-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+/* ─── Drop Zone ──────────────────────────────────────────── */
+
+.bf-dropzone {
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+
+.bf-dropzone:hover,
+.bf-dropzone.dragover {
+  border-color: var(--accent-green);
+  background: var(--accent-green-dim);
+}
+
+.bf-dropzone-icon {
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.bf-dropzone-text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.bf-dropzone-hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-2);
+}
+
+.bf-dropzone-preview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  margin-bottom: var(--space-3);
+}
+
+/* ─── Text Input Area ────────────────────────────────────── */
+
+.bf-text-input {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+  margin-bottom: var(--space-4);
+}
+
+.bf-text-input:focus {
+  outline: none;
+  border-color: var(--accent-green);
+}
+
+.bf-text-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Analysis Results / Review ──────────────────────────── */
+
+.bf-analysis-loading {
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.bf-analysis-loading .spinner {
+  margin: 0 auto var(--space-4);
+}
+
+.bf-review-section {
+  margin-top: var(--space-4);
+}
+
+.bf-review-summary {
+  background: var(--accent-green-dim);
+  border: 1px solid var(--accent-green-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.bf-review-summary .summary-text {
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-2);
+}
+
+.bf-review-summary .health-score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-green);
+}
+
+.bf-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bf-item-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  transition: all var(--transition-fast);
+}
+
+.bf-item-card:hover {
+  border-color: var(--border-hover);
+}
+
+.bf-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.bf-item-name {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+}
+
+.bf-item-portion {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.bf-item-macros {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.bf-item-macro {
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.bf-item-macro .macro-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.bf-item-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.bf-item-action-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  transition: all var(--transition-fast);
+}
+
+.bf-item-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.bf-item-action-btn--delete:hover {
+  color: var(--accent-red);
+  background: var(--accent-red-dim);
+}
+
+/* ─── Meals Timeline ─────────────────────────────────────── */
+
+.bf-meals-section {
+  margin-top: var(--space-6);
+}
+
+.bf-meals-section .section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bf-meal-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+  transition: all var(--transition-base);
+}
+
+.bf-meal-card:hover {
+  border-color: var(--glass-border-hover);
+  background: var(--glass-bg-hover);
+}
+
+.bf-meal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.bf-meal-type {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bf-meal-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.bf-meal-type-badge--breakfast { background: var(--accent-orange-dim); color: var(--accent-orange); }
+.bf-meal-type-badge--lunch { background: var(--accent-blue-dim); color: var(--accent-blue); }
+.bf-meal-type-badge--dinner { background: var(--accent-purple-dim); color: var(--accent-purple); }
+.bf-meal-type-badge--snack { background: var(--accent-green-dim); color: var(--accent-green); }
+.bf-meal-type-badge--meal { background: var(--accent-green-dim); color: var(--accent-green); }
+
+.bf-meal-time {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.bf-meal-summary-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.bf-meal-macros-row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.bf-meal-macro-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.bf-meal-macro-value {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.bf-meal-macro-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.bf-meal-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  transition: all var(--transition-fast);
+}
+
+.bf-meal-delete-btn:hover {
+  color: var(--accent-red);
+  background: var(--accent-red-dim);
+}
+
+/* ─── Date Navigator ─────────────────────────────────────── */
+
+.bf-date-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.bf-date-nav-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.bf-date-nav-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--accent-green-border);
+}
+
+.bf-date-display {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bf-date-today-btn {
+  font-size: var(--font-size-sm);
+  color: var(--accent-green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.bf-date-today-btn:hover {
+  background: var(--accent-green-dim);
+}
+
+/* ─── Goals Modal ────────────────────────────────────────── */
+
+.bf-goals-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.bf-goals-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.bf-goals-form label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.bf-goals-form input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.bf-goals-form input:focus {
+  outline: none;
+  border-color: var(--accent-green);
+}
+
+/* ─── Meal Type Selector ─────────────────────────────────── */
+
+.bf-meal-type-selector {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.bf-meal-type-option {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.bf-meal-type-option:hover {
+  border-color: var(--accent-green-border);
+  color: var(--text-primary);
+}
+
+.bf-meal-type-option.active {
+  background: var(--accent-green-dim);
+  border-color: var(--accent-green-border);
+  color: var(--accent-green);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ─── Suggestions ────────────────────────────────────────── */
+
+.bf-suggestions {
+  margin-top: var(--space-3);
+}
+
+.bf-suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.bf-suggestion-icon {
+  color: var(--accent-orange);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ─── Empty State ────────────────────────────────────────── */
+
+.bf-empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  color: var(--text-muted);
+}
+
+.bf-empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.bf-empty-state-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.bf-empty-state-desc {
+  font-size: var(--font-size-sm);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .bf-macro-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bf-actions-row {
+    flex-direction: column;
+  }
+
+  .bf-action-btn {
+    justify-content: center;
+  }
+
+  .bf-goals-form {
+    grid-template-columns: 1fr;
+  }
+
+  .bf-meal-macros-row {
+    gap: var(--space-3);
+  }
+}
