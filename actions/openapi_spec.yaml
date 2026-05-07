@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: ATLAS Concierge External APIs
+  description: Live data integration for FX rates, flight pricing, and ATLAS backend querying.
+  version: 1.0.0
+servers:
+  - url: https://api.exchangerate-api.com/v4/latest
+    description: Open Exchange Rates API
+  - url: https://test.api.amadeus.com/v2
+    description: Amadeus Flight Search API
+paths:
+  /{base_currency}:
+    get:
+      operationId: getExchangeRates
+      summary: Get latest foreign exchange rates
+      description: Retrieves real-time FX rates against a base currency (e.g., USD) to prevent stale calculations.
+      parameters:
+        - name: base_currency
+          in: path
+          required: true
+          schema:
+            type: string
+            example: USD
+      responses:
+        '200':
+          description: Successful response with FX rates
+  /shopping/flight-offers:
+    get:
+      operationId: searchFlights
+      summary: Search for flight pricing
+      description: Retrieves estimated flight costs for tour routing calculations.
+      parameters:
+        - name: originLocationCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: JFK
+        - name: destinationLocationCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: LHR
+        - name: departureDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: 2026-08-15
+      responses:
+        '200':
+          description: Successful response with flight offers

@@ -1,18 +1,21 @@
-# Changelog
+# ATLAS Custom GPT Changelog
 
-All notable changes to AIOS V2 will be documented in this file.
-
-## [0.1.0] - 2026-02-15
-
+## [1.1.0] - 2026-05-06
 ### Added
-- Initial OpenClaw workspace setup
-- Agent identity (Scotty-5) configured via SOUL.md, IDENTITY.md
-- 11 skills installed (DevOps, S3, business automation, deep research, etc.)
-- Memory system with OpenAI embeddings
-- Architecture research completed (security, onboarding, AI integration, metrics, feedback, enterprise customization)
+*   `structured_data/`: Created 5 new machine-queryable CSV/JSON files (pro_tariffs, withholding_tax, visa_matrix, payment_rails, pilot_venues).
+*   `actions/openapi_spec.yaml`: Added OpenAPI specification for live FX rates and flight pricing integration.
+*   `tier1_strategic_foundation/00_glossary.md`: Added single source of truth for terminology.
+*   `tier1_strategic_foundation/battle_cards.md`: Added competitor rebuttals.
+*   `tier1_strategic_foundation/objection_handling.md`: Added top 10 VC objections.
+*   `tier1_strategic_foundation/pitch_templates.md`: Added pre-formatted pitch outlines.
+*   `tier4_platform_architecture/contract_skeletons.md`: Added base legal templates for RAG injection.
+*   `tier5_operations_gtm_and_implementation/personas.md`: Added 4 core buyer personas.
+*   `tier1_strategic_foundation/sources.md`: Added bibliography and verification dates.
+*   `evals/`: Added a test suite with 15 prompt evaluations to prevent regressions.
 
-## [0.0.1] - 2025-01-21
+### Changed
+*   `instructions.txt`: Completely rewritten to enforce strict retrieval protocols, output templates, and GPT Actions usage.
+*   Removed empty `tier5_operations_gtm/` directory.
 
-### Added
-- Project initialized
-- Initial AIOS V1 analysis and V2 planning
+## [1.0.0] - 2026-05-06
+*   Initial release of the 20-file ATLAS knowledge base for Kendall Robbins.
